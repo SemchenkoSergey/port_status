@@ -329,11 +329,3 @@ class DslamHuawei5616(DslamHuawei):
         boards_list =  [1, 2, 3, 4]
         super().set_boards(boards_list)
 
-
-#dslam = DslamHuawei5600('172.26.194.37',  'root',  'admin')
-#print(dslam.get_adsl_line_profile(1))
-#dslam.get_line_operation_board(2)
-#time.sleep(10)
-#print(dslam.alive())
-#dslam.get_line_operation_board(1)
-#dslam.get_line_operation_board(2)
