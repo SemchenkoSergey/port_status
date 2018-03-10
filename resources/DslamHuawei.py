@@ -12,6 +12,7 @@ class DslamHuawei():
     
     @staticmethod
     def check_out(command, str_out):
+        """ Проверка вывода команды """
         bad_strings = ('Failure: System is busy', 'please wait',  'Unknown command')
         if command not in str_out:
             return False
@@ -64,6 +65,7 @@ class DslamHuawei():
             log_file.write('{} {}\n{}\n**************************************\n'.format(in_out,  datetime.datetime.now().strftime('%H:%M:%S'),  line))
         
     def alive(self):
+        """ Проверка есть ли связь с DSLAM """
         str_out = self.write_read_data('',  short=True)
         if str_out == '\n':
             return True
@@ -106,6 +108,7 @@ class DslamHuawei():
                 return -1                  
         
     def write_read_data(self, command,  short=False):
+        """ Выполнение команды и получение результата """
         command_line = command
         for count in range(0, 5):
             self.write_data(command_line)
@@ -126,7 +129,7 @@ class DslamHuawei():
                 self.boards.append(board) 
     
     def set_adsl_line_profile(self):
-        """ Получить список всех профайлов линий """
+        """ Установить self.adsl_line_profile - список профайлов линий """
         command_line = 'display adsl line-profile'
         str_out = self.write_read_data(command_line)
         if str_out is False:
@@ -159,6 +162,7 @@ class DslamHuawei():
             prev_up_rate = current_up_rate
     
     def get_info(self):
+        """ Получить информацию о DSLAM """
         return {'ip' : self.ip,
                 'hostname' : self.hostname,
                 'version' : self.version,
@@ -212,6 +216,7 @@ class DslamHuawei():
         return result        
     
     def get_line_operation_port(self, board, port):
+        """ Получить параметры линии с порта """
         command = 'display line operation port'
         command_line = '{} 0/{}/{}'.format(command, board, port)
         str_out = self.write_read_data(command_line)
@@ -254,6 +259,7 @@ class DslamHuawei():
             return result
     
     def get_adsl_line_profile(self, profile_index):
+        """ Получить описание профайла линии по его индексу """
         if profile_index not in self.adsl_line_profile:
             return 'The profile does not exist'
         command = 'display adsl line-profile'
@@ -270,6 +276,7 @@ class DslamHuawei():
         return result
 
     def get_time(self):
+        """ Получить Дату - Время с DSLAM """
         command = 'display time'
         str_out = self.write_read_data(command)
         if str_out is False:
@@ -279,6 +286,7 @@ class DslamHuawei():
         return datetime.datetime(int(list_date[0]), int(list_date[1]), int(list_date[2]), int(list_time[0]), int(list_time[1]), int(list_time[2]))
     
     def set_activate_port(self, board, port):
+        """ Активировать порт """
         self.write_read_data('config',  short=True)
         self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
         self.write_read_data('activate {}'.format(port))
@@ -286,6 +294,7 @@ class DslamHuawei():
         self.write_read_data('quit',  short=True)
     
     def set_deactivate_port(self, board, port):
+        """ Деактивировать порт """
         self.write_read_data('config',  short=True)
         self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
         self.write_read_data('deactivate {}'.format(port))
@@ -293,6 +302,7 @@ class DslamHuawei():
         self.write_read_data('quit',  short=True)
         
     def set_adsl_line_profile_port(self, board, port, profile_index):
+        """ Изменить профайл на порту """
         if profile_index not in self.adsl_line_profile:
             profile_index = 1
         self.write_read_data('config',  short=True)
