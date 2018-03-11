@@ -14,11 +14,11 @@ err_file_onyma = 'error-abon_dsl-onyma.txt'
 
 def create_error_files():
     current_time = datetime.datetime.now()
-    with open('out' + os.sep + err_file_argus, 'w') as f:
+    with open('error_files' + os.sep + err_file_argus, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
-    with open('out' + os.sep + err_file_onyma, 'w') as f:
+    with open('error_files' + os.sep + err_file_onyma, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
-    with open('out' + os.sep + err_file_sql, 'w') as f:
+    with open('error_files' + os.sep + err_file_sql, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
     
 def create_abon_dsl ():
