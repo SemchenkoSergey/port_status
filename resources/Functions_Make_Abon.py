@@ -81,7 +81,7 @@ def argus_abon_dsl(file_list):
                     board =  re_dsl.search(cell_dsl).group(3)
                     port =  re_dsl.search(cell_dsl).group(4)
                 elif cell_phone != '' and 'DSL' in cell_dsl:
-                    with open('out' + os.sep + err_file_argus, 'a') as f:
+                    with open('error_files' + os.sep + err_file_argus, 'a') as f:
                         f.write(cell_phone + ': ' + cell_dsl + '\n')
                     continue
                 else:
@@ -111,7 +111,7 @@ def argus_abon_dsl(file_list):
                 try:
                     cursor.execute(command)
                 except Exception as ex:
-                    with open('out' + os.sep + err_file_sql, 'a') as f:
+                    with open('error_files' + os.sep + err_file_sql, 'a') as f:
                         f.write(str(ex) + '\n')
                 else:
                     cursor.execute('commit')
@@ -146,7 +146,7 @@ def onyma_abon_dsl(file_list):
                         try:
                             cursor.execute(command)
                         except Exception as ex:
-                            with open('out' + os.sep + err_file_sql, 'a') as f:
+                            with open('error_files' + os.sep + err_file_sql, 'a') as f:
                                 f.write(str(ex) + '\n')
                         else:
                             cursor.execute('commit')
@@ -162,7 +162,7 @@ def onyma_abon_dsl(file_list):
                         try:
                             cursor.execute(command)
                         except Exception as ex:
-                            with open('out' + os.sep + err_file_sql, 'a') as f:
+                            with open('error_files' + os.sep + err_file_sql, 'a') as f:
                                 f.write(str(ex) + '\n')
                         else:
                             cursor.execute('commit')                        
@@ -176,7 +176,7 @@ def onyma_abon_dsl(file_list):
                     elif tariff in max_speed:
                         speed = 15 * 1024
                     else:
-                        with open('out' + os.sep + err_file_onyma, 'a') as f:
+                        with open('error_files' + os.sep + err_file_onyma, 'a') as f:
                                 f.write(tariff + '\n')
                         continue
                     command = '''
@@ -187,7 +187,7 @@ def onyma_abon_dsl(file_list):
                     try:
                         cursor.execute(command)
                     except Exception as ex:
-                        with open('out' + os.sep + err_file_sql, 'a') as f:
+                        with open('error_files' + os.sep + err_file_sql, 'a') as f:
                             f.write(str(ex) + '\n')                          
                     else:
                         cursor.execute('commit')                        
