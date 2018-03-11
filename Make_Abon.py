@@ -1,7 +1,9 @@
 # coding: utf8
 
 import os
+import datetime
 from concurrent.futures import ThreadPoolExecutor
+from resources import Settings
 from resources import Functions_Make_Abon as Func_MA
 
 print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))

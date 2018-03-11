@@ -4,6 +4,7 @@ import MySQLdb
 import re
 import csv
 import os
+import time
 import datetime
 from resources import Settings
 from selenium import webdriver as webdriver
@@ -207,8 +208,25 @@ def get_accounts():
     connect.close()
     return result
 
-    
-    
+def get_browser():
+    while True:
+        try:
+            browser = webdriver.Chrome()
+        except:
+            time.sleep(10)
+            continue
+        else:
+            browser.implicitly_wait(10)
+            return browser
+
+def open_onyma(browser):
+    browser.get("https://10.144.196.37/onyma/")
+    element = browser.find_element_by_id("LOGIN")
+    element.send_keys(Settings.onyma_login)
+    element = browser.find_element_by_id("PASSWD")
+    element.send_keys(Settings.onyma_password)
+    element = browser.find_element_by_id("enter")
+    element.click()    
     
 def define_param(card_name,  browser,  cursor):
     browser.get("https://10.144.196.37/onyma/main/dogsearch.htms?menuitem=1851")
@@ -251,18 +269,18 @@ def define_param(card_name,  browser,  cursor):
 def run_define_param(account_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
-    browser = webdriver.Chrome()
-    browser.implicitly_wait(10)
-    
-    browser.get("https://10.144.196.37/onyma/")
-    element = browser.find_element_by_id("LOGIN")
-    element.send_keys(Settings.onyma_login)
-    element = browser.find_element_by_id("PASSWD")
-    element.send_keys(Settings.onyma_password)
-    element = browser.find_element_by_id("enter")
-    element.click()
+    browser = get_browser()
+    open_onyma(browser)
     
     for account in account_list:
-        define_param(account_list, browser, cursor)
+        try:
+            define_param(account[0], browser, cursor)
+        except:
+            browser.quit()
+            del browser
+            time.sleep(30)
+            browser = get_browser()
+            open_onyma(browser)       
     connect.close()
     browser.quit()
+
