@@ -4,6 +4,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from resources import Functions_Make_Abon as Func_MA
 
+print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 Func_MA.create_error_files()
 Func_MA.create_abon_dsl()
 
@@ -22,4 +23,4 @@ del account_list
 with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
     executor.map(Func_MA.run_define_param, arguments)
 
-print('Программа завершила работу...')
+print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
