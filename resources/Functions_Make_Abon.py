@@ -6,6 +6,7 @@ import csv
 import os
 import datetime
 from resources import Settings
+from selenium import webdriver as webdriver
 
 err_file_sql = 'error-abon_dsl-sql.txt'
 err_file_argus = 'error-abon_dsl-argus.txt'
@@ -191,3 +192,77 @@ def onyma_abon_dsl(file_list):
                     else:
                         cursor.execute('commit')                        
     connect.close()
+
+
+def get_accounts():
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    command = '''
+    SELECT account_name
+    FROM abon_dsl
+    WHERE account_name IS NOT NULL
+    '''
+    cursor.execute(command)
+    result = cursor.fetchall()
+    connect.close()
+    return result
+
+    
+    
+    
+def define_param(card_name,  browser,  cursor):
+    browser.get("https://10.144.196.37/onyma/main/dogsearch.htms?menuitem=1851")
+    element = browser.find_element_by_id("sitename")
+    element.send_keys(card_name)
+    element = browser.find_element_by_id("search")
+    element.click()
+    element = browser.find_element_by_partial_link_text("Договор")
+    element.click()
+    element = browser.find_element_by_id("menu4185")
+    element.click()
+    element = browser.find_element_by_partial_link_text(datetime.date.today().strftime('%Y'))
+    element.click()
+    elements = browser.find_elements_by_link_text(card_name)
+    find = False
+    for element in elements[::-1]:
+        if 'service=201' in element.get_attribute('href'):
+            element.click()
+            find = True
+            break
+    if not find:
+        return False
+    current_url = browser.current_url
+    bill = re.search(r'bill=(\d+)',  current_url).group(1)
+    tmid = re.search(r'tmid=(\d+)',  current_url).group(1)
+    dmid = re.search(r'dmid=(\d+)',  current_url).group(1)
+    command = '''
+    UPDATE abon_dsl
+    SET bill = "{}", dmid = "{}", tmid = "{}"
+    WHERE account_name = "{}"
+    '''.format(bill, dmid,  tmid,  card_name)
+    try:
+        cursor.execute(command)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+    return True
+
+def run_define_param(account_list):
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    browser = webdriver.Chrome()
+    browser.implicitly_wait(10)
+    
+    browser.get("https://10.144.196.37/onyma/")
+    element = browser.find_element_by_id("LOGIN")
+    element.send_keys(Settings.onyma_login)
+    element = browser.find_element_by_id("PASSWD")
+    element.send_keys(Settings.onyma_password)
+    element = browser.find_element_by_id("enter")
+    element.click()
+    
+    for account in account_list:
+        define_param(account_list, browser, cursor)
+    connect.close()
+    browser.quit()
