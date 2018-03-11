@@ -10,7 +10,7 @@ from selenium import webdriver as webdriver
 def get_browser():
     while True:
         try:
-#            browser = webdriver.Firefox()
+            #browser = webdriver.Firefox()
             browser = webdriver.Chrome()
         except:
             time.sleep(120)
@@ -41,8 +41,7 @@ def get_accounts(cursor):
     WHERE account_name IS NOT NULL
     '''
     cursor.execute(command)
-    result = cursor.fetchall()
-    return result
+    return cursor.fetchall()
 
 def open_onyma(browser):
     browser.get("https://10.144.196.37/onyma/")
