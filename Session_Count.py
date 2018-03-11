@@ -28,7 +28,7 @@ while True:
         print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         status['state'] = True
     else:
-        if datetime.datetime.now().date()  - status['date'] > datetime.timedelta(0):
+        if (datetime.datetime.now().date()  - status['date'] > datetime.timedelta(0)) and (datetime.datetime.now().hour >= 4):
             status['date'] = datetime.datetime.now().date()
             status['state'] = False
             continue
