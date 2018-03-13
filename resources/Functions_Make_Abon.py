@@ -219,14 +219,25 @@ def get_browser():
             browser.implicitly_wait(10)
             return browser
 
-def open_onyma(browser):
-    browser.get("https://10.144.196.37/onyma/")
-    element = browser.find_element_by_id("LOGIN")
-    element.send_keys(Settings.onyma_login)
-    element = browser.find_element_by_id("PASSWD")
-    element.send_keys(Settings.onyma_password)
-    element = browser.find_element_by_id("enter")
-    element.click()    
+def open_onyma():
+    browser = get_browser()
+    while True:
+        try:
+            browser.get("https://10.144.196.37/onyma/")
+            element = browser.find_element_by_id("LOGIN")
+            element.send_keys(Settings.onyma_login)
+            element = browser.find_element_by_id("PASSWD")
+            element.send_keys(Settings.onyma_password)
+            element = browser.find_element_by_id("enter")
+            element.click()
+        except:
+            browser.quit()
+            del browser
+            time.sleep(15)
+            browser = get_browser()
+        else:
+            break
+    return browser
     
 def define_param(card_name,  browser,  cursor):
     browser.get("https://10.144.196.37/onyma/main/dogsearch.htms?menuitem=1851")
@@ -278,9 +289,8 @@ def run_define_param(account_list):
         except:
             browser.quit()
             del browser
-            time.sleep(30)
-            browser = get_browser()
-            open_onyma(browser)       
+            time.sleep(15)
+            browser = open_onyma()  
     connect.close()
     browser.quit()
 
