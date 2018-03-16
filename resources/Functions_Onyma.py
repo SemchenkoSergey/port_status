@@ -48,7 +48,7 @@ def count_sessions(bill,  dmid,  tmid,  date,  browser,  cursor):
         return False
     return int(count)
 
-def find_account_param(browser, account_name, date):
+def find_account_param(browser, account_name):
     element = browser.find_element_by_id("menu4185")
     element.click()
     element = browser.find_element_by_partial_link_text(datetime.date.today().strftime('%Y'))
