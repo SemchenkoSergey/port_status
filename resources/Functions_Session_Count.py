@@ -39,20 +39,20 @@ def run(account_list):
 
     prev_day = datetime.date.today() - datetime.timedelta(days=1)
     for account in account_list:
-        card_name = account[0]
+        account_name = account[0]
         bill = account[1]
         dmid = account[2]
         tmid = account[3]        
         try:
             count = Onyma.count_sessions(bill,  dmid,  tmid,  prev_day,  browser,  cursor)
             if count == 0:
-                cur_bill, cur_tmid, cur_dmid = Onyma.find_account_param(browser, card_name, prev_day)
+                cur_bill, cur_tmid, cur_dmid = Onyma.find_account_param(browser, account_name, prev_day)
                 if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
                     command = '''
                     UPDATE abon_dsl
-                    SET bill = "{}", dmid = "{}", tmid = "{}"
+                    SET bill = "{}", tmid = "{}", dmid = "{}"
                     WHERE account_name = "{}"
-                    '''.format(cur_bill, cur_dmid, cur_tmid, card_name)
+                    '''.format(cur_bill, cur_tmid, cur_dmid, account_name)
                     try:
                         cursor.execute(command)
                     except:
@@ -70,7 +70,7 @@ def run(account_list):
         (account_name, date, count)
         VALUES
         ("{}", "{}", {})
-        '''.format(card_name, prev_day.strftime('%Y-%m-%d'), count)
+        '''.format(account_name, prev_day.strftime('%Y-%m-%d'), count)
         try:
             cursor.execute(command)
         except:
