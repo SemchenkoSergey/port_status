@@ -42,30 +42,39 @@ def run(account_list):
         account_name = account[0]
         bill = account[1]
         dmid = account[2]
-        tmid = account[3]        
-        try:
-            count = Onyma.count_sessions(bill,  dmid,  tmid,  prev_day,  browser,  cursor)
-            if count == 0:
-                cur_bill, cur_tmid, cur_dmid = Onyma.find_account_param(browser, account_name)
-                if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
-                    command = '''
-                    UPDATE abon_dsl
-                    SET bill = "{}", tmid = "{}", dmid = "{}"
-                    WHERE account_name = "{}"
-                    '''.format(cur_bill, cur_tmid, cur_dmid, account_name)
-                    try:
-                        cursor.execute(command)
-                    except:
-                        pass
-                    else:
-                        cursor.execute('commit')
-                    count = Onyma.count_sessions(cur_bill,  cur_dmid,  cur_tmid,  prev_day,  browser,  cursor)
-        except Exception as ex:
-            print(ex)
+        tmid = account[3]
+        
+        count = Onyma.count_sessions(bill,  dmid,  tmid,  prev_day,  browser,  cursor)
+        if count is False:
+            continue
+        elif count == -1:
             browser.quit()
-            del browser
-            time.sleep(15)
             browser = Onyma.open_onyma()
+            continue
+        elif count == 0:
+            account_param = Onyma.find_account_param(browser, account_name)
+            if account_param is False:
+                continue
+            elif account_param == -1:
+                browser.quit()
+                browser = Onyma.open_onyma()
+                continue
+            else:
+                cur_bill, cur_tmid, cur_dmid = account_param
+            if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
+                command = '''
+                UPDATE abon_dsl
+                SET bill = "{}", tmid = "{}", dmid = "{}"
+                WHERE account_name = "{}"
+                '''.format(cur_bill, cur_tmid, cur_dmid, account_name)
+                try:
+                    cursor.execute(command)
+                except:
+                    pass
+                else:
+                    cursor.execute('commit')
+                count = Onyma.count_sessions(cur_bill,  cur_dmid,  cur_tmid,  prev_day,  browser,  cursor)
+                
         command = '''
         INSERT INTO data_sessions
         (account_name, date, count)

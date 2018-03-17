@@ -216,24 +216,26 @@ def run_define_param(account_list):
     browser = Onyma.open_onyma()
     
     for account in account_list:
-        try:
-            bill, tmid, dmid = Onyma.find_account_param(browser, account[0])
-            command = '''
-            UPDATE abon_dsl
-            SET bill = "{}",  tmid = "{}", dmid = "{}"
-            WHERE account_name = "{}"
-            '''.format(bill, tmid, dmid, account[0])
-            try:
-                cursor.execute(command)
-            except:
-                pass
-            else:
-                cursor.execute('commit')            
-        except:
+        account_param = Onyma.find_account_param(browser, account_name)
+        if account_param is False:
+            continue
+        elif account_param == -1:
             browser.quit()
-            del browser
-            time.sleep(15)
-            browser = Onyma.open_onyma() 
+            browser = Onyma.open_onyma()
+            continue
+        else:
+            bill, tmid, dmid = account_param
+        command = '''
+        UPDATE abon_dsl
+        SET bill = "{}",  tmid = "{}", dmid = "{}"
+        WHERE account_name = "{}"
+        '''.format(bill, tmid, dmid, account[0])
+        try:
+            cursor.execute(command)
+        except:
+            pass
+        else:
+            cursor.execute('commit')
     connect.close()
     browser.quit()
 
