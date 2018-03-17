@@ -46,7 +46,7 @@ def run(account_list):
         try:
             count = Onyma.count_sessions(bill,  dmid,  tmid,  prev_day,  browser,  cursor)
             if count == 0:
-                cur_bill, cur_tmid, cur_dmid = Onyma.find_account_param(browser, account_name, prev_day)
+                cur_bill, cur_tmid, cur_dmid = Onyma.find_account_param(browser, account_name)
                 if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
                     command = '''
                     UPDATE abon_dsl
@@ -60,7 +60,8 @@ def run(account_list):
                     else:
                         cursor.execute('commit')
                     count = Onyma.count_sessions(cur_bill,  cur_dmid,  cur_tmid,  prev_day,  browser,  cursor)
-        except:
+        except Exception as ex:
+            print(ex)
             browser.quit()
             del browser
             time.sleep(15)
