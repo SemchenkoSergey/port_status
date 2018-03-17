@@ -50,6 +50,13 @@ def count_sessions(bill,  dmid,  tmid,  date,  browser,  cursor):
     return int(count)
 
 def find_account_param(browser, account_name):
+    browser.get("https://10.144.196.37/onyma/main/dogsearch.htms?menuitem=1851")
+    element = browser.find_element_by_id("sitename")
+    element.send_keys(account_name)
+    element = browser.find_element_by_id("search")
+    element.click()
+    element = browser.find_element_by_partial_link_text("Договор")
+    element.click()                
     element = browser.find_element_by_id("menu4185")
     element.click()
     element = browser.find_element_by_partial_link_text(datetime.date.today().strftime('%Y'))
