@@ -45,6 +45,7 @@ def count_sessions(bill,  dmid,  tmid,  date,  browser,  cursor):
     if re.search(r'<td class="foot">Все</td><td class="pgout" colspan="5">.+?<b>(\d+)</b>',  browser.page_source.__repr__()):
         count = re.search(r'<td class="foot">Все</td><td class="pgout" colspan="5">.+?<b>(\d+)</b>',  browser.page_source.__repr__()).group(1)
     else:
+        print('count_sessions: bill {},  dmid {}, tmid {}, date {}',format(bill,  dmid,  tmid,  date))
         return False
     return int(count)
 
@@ -55,7 +56,9 @@ def find_account_param(browser, account_name):
     element.click()
     elements = browser.find_elements_by_link_text(account_name)
     elements_url = [x.get_attribute('href') for x in elements if 'service=201' in x.get_attribute('href')]
-    max_date = datetime.datetime(date.year, date.month, 1)
+    year = datetime.datetime.now().year
+    month = datetime.datetime.now().month
+    max_date = datetime.datetime(year, month, 1)
     url = ''
     
     for element_url in elements_url:
@@ -64,7 +67,7 @@ def find_account_param(browser, account_name):
         for element_date in elements_date:
             if 'menuitem=4185' in element_date.get_attribute('href'):
                 current_date = datetime.datetime.strptime(element_date.get_attribute('title'), '%d.%m.%y')
-                if current_date > max_date:
+                if current_date >= max_date:
                     max_date = current_date
                     url = browser.current_url
                     break
@@ -76,4 +79,5 @@ def find_account_param(browser, account_name):
         dmid = re.search(r'dmid=(\d+)', url).group(1)
         return bill, tmid, dmid
     else:
+        print('find_account_param: {}'.format(account_name))
         return False
