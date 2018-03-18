@@ -1,0 +1,174 @@
+﻿MariaDB [dsl]> desc data_dsl;
++-------------+----------------------+------+-----+---------+----------------+
+| Field       | Type                 | Null | Key | Default | Extra          |
++-------------+----------------------+------+-----+---------+----------------+
+| id          | int(10) unsigned     | NO   | PRI | NULL    | auto_increment |
+| hostname    | varchar(50)          | NO   |     | NULL    |                |
+| board       | tinyint(3) unsigned  | NO   |     | NULL    |                |
+| port        | tinyint(3) unsigned  | NO   |     | NULL    |                |
+| up_snr      | float(3,1)           | YES  |     | NULL    |                |
+| dw_snr      | float(3,1)           | YES  |     | NULL    |                |
+| up_att      | float(3,1)           | YES  |     | NULL    |                |
+| dw_att      | float(3,1)           | YES  |     | NULL    |                |
+| max_up_rate | smallint(5) unsigned | YES  |     | NULL    |                |
+| max_dw_rate | smallint(5) unsigned | YES  |     | NULL    |                |
+| up_rate     | smallint(5) unsigned | YES  |     | NULL    |                |
+| dw_rate     | smallint(5) unsigned | YES  |     | NULL    |                |
+| datetime    | datetime             | NO   |     | NULL    |                |
++-------------+----------------------+------+-----+---------+----------------+
+
+MariaDB [inet]> desc abon_dsl;
++------------------+----------------------+------+-----+-------------------+-----------------------------+
+| Field            | Type                 | Null | Key | Default           | Extra                       |
++------------------+----------------------+------+-----+-------------------+-----------------------------+
+| phone_number     | char(10)             | NO   | PRI | NULL              |                             |
+| area             | varchar(30)          | YES  |     | NULL              |                             |
+| locality         | varchar(30)          | YES  |     | NULL              |                             |
+| street           | varchar(30)          | YES  |     | NULL              |                             |
+| house_number     | varchar(10)          | YES  |     | NULL              |                             |
+| apartment_number | varchar(10)          | YES  |     | NULL              |                             |
+| hostname         | varchar(50)          | YES  |     | NULL              |                             |
+| board            | tinyint(3) unsigned  | YES  |     | NULL              |                             |
+| port             | tinyint(3) unsigned  | YES  |     | NULL              |                             |
+| protect          | varchar(10)          | YES  |     | NULL              |                             |
+| tariff           | smallint(5) unsigned | YES  |     | NULL              |                             |
+| account_name     | varchar(20)          | YES  |     | NULL              |                             |
+| bill             | varchar(15)          | YES  |     | NULL              |                             |
+| dmid             | varchar(15)          | YES  |     | NULL              |                             |
+| tmid             | varchar(15)          | YES  |     | NULL              |                             |
+| tv               | enum('yes','no')     | YES  |     | NULL              |                             |
+| timestamp        | timestamp            | NO   |     | CURRENT_TIMESTAMP | on update CURRENT_TIMESTAMP |
++------------------+----------------------+------+-----+-------------------+-----------------------------+
+
+MariaDB [inet]> desc data_sessions;
++--------------+---------------------+------+-----+---------+-------+
+| Field        | Type                | Null | Key | Default | Extra |
++--------------+---------------------+------+-----+---------+-------+
+| account_name | varchar(20)         | NO   | PRI | NULL    |       |
+| date         | date                | NO   | PRI | NULL    |       |
+| count        | tinyint(3) unsigned | YES  |     | NULL    |       |
++--------------+---------------------+------+-----+---------+-------+
+
+
+--- Средняя скорость по нас. пунктам (сортировка по пунктам) ---
+
+SELECT ad.locality "Нас. пункт", ROUND(AVG(dd.max_dw_rate)) "Ср. знач. макс. скор.", COUNT(DISTINCT ad.phone_number) "Кол-во абон."
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY) AND ad.locality IS NOT NULL
+GROUP BY ad.locality
+ORDER BY ad.locality;
+
+--- Средняя скорость по ЗП (сортировка по скорости) ---
+
+SELECT ad.hostname "DSLAM", ad.protect "ЗП", ROUND(AVG(dd.max_dw_rate)) "Ср. знач. макс. скор.", COUNT(DISTINCT ad.phone_number) "Кол-во абон."
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY) AND ad.locality LIKE '%Светло%' AND ad.protect IS NOT NULL
+GROUP BY ad.hostname, ad.protect
+HAVING AVG(dd.max_dw_rate) IS NOT NULL
+ORDER BY ad.hostname, ROUND(AVG(dd.max_dw_rate));
+
+--- Средняя скорость по улицам ---
+
+SELECT ad.hostname "DSLAM", ad.street "Улица", ad.protect "ЗП", ROUND(AVG(dd.max_dw_rate)) "Ср. знач. макс. скор.", COUNT(DISTINCT ad.phone_number) "Кол-во абон."
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY) AND ad.locality LIKE '%Светло%' AND ad.protect IS NOT NULL
+GROUP BY ad.hostname, ad.street, ad.protect
+HAVING AVG(dd.max_dw_rate) IS NOT NULL
+ORDER BY ad.street, ad.protect;
+
+
+--- Абоненты со скоростью ниже ТП (макс. скор.) ---
+SELECT
+ ad.phone_number "Номер тел.",
+ MAX(dd.max_dw_rate) "Макс. прих. скор.",
+ ad.tariff "Тариф",
+ ROUND(MAX(dd.max_dw_rate)/ad.tariff, 2) "Отнош. скор./тариф"
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE CAST(dd.datetime AS DATE) = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) AND ad.locality LIKE '%Светло%' AND ad.tariff IS NOT NULL
+GROUP BY dd.hostname, dd.board, dd.port
+HAVING MAX(dd.max_dw_rate) IS NOT NULL AND ROUND(MAX(dd.max_dw_rate)/ad.tariff, 2) <= 0.5 
+ORDER BY 4;
+
+--- Абоненты со скоростью ниже ТП (сред. скор.) ---
+SELECT ad.phone_number "Номер тел.", ROUND(AVG(dd.max_dw_rate)) "Ср. прих. скор.", ad.tariff "Тариф", ROUND(AVG(dd.max_dw_rate)/ad.tariff, 2) "Отнош. скор./тариф"
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY) AND ad.locality LIKE '%Светло%' AND ad.tariff IS NOT NULL
+GROUP BY dd.hostname, dd.board, dd.port
+HAVING AVG(dd.max_dw_rate) IS NOT NULL AND ROUND(AVG(dd.max_dw_rate)/ad.tariff, 2) <= 0.5 
+ORDER BY 4;
+
+--- Абоненты с минимальной скоростью (20 штук) ---
+SELECT ad.phone_number "Номер тел.", MIN(dd.max_dw_rate) "Прих. скор.", ad.tariff "Тариф"
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) AND ad.locality LIKE '%Светло%' AND ad.tariff IS NOT NULL AND dd.max_dw_rate IS NOT NULL
+GROUP BY dd.hostname, dd.board, dd.port
+HAVING MIN(dd.max_dw_rate) IS NOT NULL
+ORDER BY 2
+LIMIT 20;
+
+--- Выборка для IPTV ---
+SELECT ad.phone_number, ad.street, ad.house_number, ad.apartment_number, MIN(dd.max_dw_rate)
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY) AND dd.max_dw_rate IS NOT NULL AND ad.tv IS NULL AND ad.locality LIKE '%Светлог%'
+GROUP BY ad.phone_number
+HAVING MIN(dd.max_dw_rate) > 15000
+ORDER BY ad.phone_number;
+
+--- Статистика абонента с прошлого дня ---
+SELECT ad.phone_number "Номер тел.", dd.max_up_rate, dd.max_dw_rate, dd.up_rate, dd.dw_rate, ad.tariff, dd.datetime
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -5 DAY) AND ad.phone_number = '8654743265'
+ORDER BY dd.datetime;
+
+--- Статистика порта с прошлого дня ---
+SELECT hostname, board, port, max_dw_rate, up_rate, dw_rate, datetime
+FROM data_dsl
+WHERE datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -2 DAY) AND hostname LIKE '%SOLE%' AND board=1 AND port=3
+ORDER BY datetime; 
+
+--- Статистика разрывов > 30 ---
+SELECT
+ ad.locality "Нас. пункт",
+ ad.street "Улица",
+ ad.house_number "Дом",
+ ad.phone_number "Телефон",
+ ad.tariff "Тариф",
+ ROUND(AVG(dd.max_dw_rate)) "Ср. скорость",
+ ds.count "Разрывы"
+FROM abon_dsl ad INNER JOIN data_dsl dd
+	ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+	INNER JOIN data_sessions ds
+	ON ad.account_name = ds.account_name AND ds.date = CAST(dd.datetime AS DATE)
+WHERE ds.date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) AND ds.count > 30
+GROUP BY dd.hostname, dd.board, dd.port
+ORDER BY ds.count DESC;
+
+--- Сбитые модемы ---
+SELECT RIGHT(ad.phone_number, 5), ad.locality, ad.street, ad.house_number, apartment_number
+FROM abon_dsl ad INNER JOIN data_dsl dd
+ ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE CAST(dd.datetime AS DATE) = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) AND  ad.account_name IN (
+ SELECT account_name
+ FROM data_sessions
+ WHERE date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) AND count = 0
+)
+GROUP BY dd.hostname, dd.board, dd.port
+HAVING AVG(dd.max_dw_rate) IS NOT NULL
+ORDER BY ad.locality, ad.street;
+
+--- ! ---
+SELECT RIGHT(ad.phone_number, 5), ROUND(AVG(dd.max_up_rate)), ROUND(AVG(dd.max_dw_rate)), ds.count, ds.date
+FROM abon_dsl ad INNER JOIN data_sessions ds
+ ON ad.account_name = ds.account_name
+  INNER JOIN data_dsl dd
+   ON ad.hostname=dd.hostname AND ad.board=dd.board AND ad.port=dd.port
+WHERE CAST(dd.datetime AS DATE) = '2018-03-06' AND ds.date = '2018-03-06' AND ad.phone_number = '8654743265'
+GROUP BY dd.hostname, dd.board, dd.port;
