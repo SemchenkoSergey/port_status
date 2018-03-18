@@ -4,8 +4,11 @@ import MySQLdb
 import re
 import csv
 import os
+import time
 import datetime
 from resources import Settings
+from resources import Functions_Onyma as Onyma
+from selenium import webdriver as webdriver
 
 err_file_sql = 'error-abon_dsl-sql.txt'
 err_file_argus = 'error-abon_dsl-argus.txt'
@@ -13,11 +16,11 @@ err_file_onyma = 'error-abon_dsl-onyma.txt'
 
 def create_error_files():
     current_time = datetime.datetime.now()
-    with open('out' + os.sep + err_file_argus, 'w') as f:
+    with open('error_files' + os.sep + err_file_argus, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
-    with open('out' + os.sep + err_file_onyma, 'w') as f:
+    with open('error_files' + os.sep + err_file_onyma, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
-    with open('out' + os.sep + err_file_sql, 'w') as f:
+    with open('error_files' + os.sep + err_file_sql, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
     
 def create_abon_dsl ():
@@ -80,7 +83,7 @@ def argus_abon_dsl(file_list):
                     board =  re_dsl.search(cell_dsl).group(3)
                     port =  re_dsl.search(cell_dsl).group(4)
                 elif cell_phone != '' and 'DSL' in cell_dsl:
-                    with open('out' + os.sep + err_file_argus, 'a') as f:
+                    with open('error_files' + os.sep + err_file_argus, 'a') as f:
                         f.write(cell_phone + ': ' + cell_dsl + '\n')
                     continue
                 else:
@@ -110,7 +113,7 @@ def argus_abon_dsl(file_list):
                 try:
                     cursor.execute(command)
                 except Exception as ex:
-                    with open('out' + os.sep + err_file_sql, 'a') as f:
+                    with open('error_files' + os.sep + err_file_sql, 'a') as f:
                         f.write(str(ex) + '\n')
                 else:
                     cursor.execute('commit')
@@ -145,7 +148,7 @@ def onyma_abon_dsl(file_list):
                         try:
                             cursor.execute(command)
                         except Exception as ex:
-                            with open('out' + os.sep + err_file_sql, 'a') as f:
+                            with open('error_files' + os.sep + err_file_sql, 'a') as f:
                                 f.write(str(ex) + '\n')
                         else:
                             cursor.execute('commit')
@@ -161,7 +164,7 @@ def onyma_abon_dsl(file_list):
                         try:
                             cursor.execute(command)
                         except Exception as ex:
-                            with open('out' + os.sep + err_file_sql, 'a') as f:
+                            with open('error_files' + os.sep + err_file_sql, 'a') as f:
                                 f.write(str(ex) + '\n')
                         else:
                             cursor.execute('commit')                        
@@ -175,7 +178,7 @@ def onyma_abon_dsl(file_list):
                     elif tariff in max_speed:
                         speed = 15 * 1024
                     else:
-                        with open('out' + os.sep + err_file_onyma, 'a') as f:
+                        with open('error_files' + os.sep + err_file_onyma, 'a') as f:
                                 f.write(tariff + '\n')
                         continue
                     command = '''
@@ -186,8 +189,53 @@ def onyma_abon_dsl(file_list):
                     try:
                         cursor.execute(command)
                     except Exception as ex:
-                        with open('out' + os.sep + err_file_sql, 'a') as f:
+                        with open('error_files' + os.sep + err_file_sql, 'a') as f:
                             f.write(str(ex) + '\n')                          
                     else:
                         cursor.execute('commit')                        
     connect.close()
+
+
+def get_accounts():
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    command = '''
+    SELECT account_name
+    FROM abon_dsl
+    WHERE account_name IS NOT NULL
+    '''
+    cursor.execute(command)
+    result = cursor.fetchall()
+    connect.close()
+    return result
+
+
+def run_define_param(account_list):
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    browser = Onyma.open_onyma()
+    
+    for account in account_list:
+        account_param = Onyma.find_account_param(browser, account_name)
+        if account_param is False:
+            continue
+        elif account_param == -1:
+            browser.quit()
+            browser = Onyma.open_onyma()
+            continue
+        else:
+            bill, tmid, dmid = account_param
+        command = '''
+        UPDATE abon_dsl
+        SET bill = "{}",  tmid = "{}", dmid = "{}"
+        WHERE account_name = "{}"
+        '''.format(bill, tmid, dmid, account[0])
+        try:
+            cursor.execute(command)
+        except:
+            pass
+        else:
+            cursor.execute('commit')
+    connect.close()
+    browser.quit()
+

@@ -12,7 +12,7 @@ DslamHuawei.LOGGING = True
 err_file_sql = 'error-port_status-sql.txt'
 def create_error_file():
     current_time = datetime.datetime.now()
-    with open('out' + os.sep + err_file_sql, 'w') as f:
+    with open('error_files' + os.sep + err_file_sql, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
 
 def check_tables():
@@ -38,7 +38,7 @@ def check_tables():
     try:
         cursor.execute(table)
     except Exception as ex:
-        with open('out' + os.sep + err_file_sql, 'a') as f:
+        with open('error_files' + os.sep + err_file_sql, 'a') as f:
             f.write(str(ex) + '\n')            
     else:
         cursor.execute('commit')
@@ -104,7 +104,7 @@ def run(arguments):
                 try:
                     cursor.execute(command)
                 except Exception as ex:
-                    with open('out' + os.sep + err_file_sql, 'a') as f:
+                    with open('error_files' + os.sep + err_file_sql, 'a') as f:
                         f.write(str(ex) + '\n')                  
                 else:
                     cursor.execute('commit')
@@ -118,7 +118,7 @@ def run(arguments):
             try:
                 cursor.execute(command)
             except Exception as ex:
-                with open('out' + os.sep + err_file_sql, 'a') as f:
+                with open('error_files' + os.sep + err_file_sql, 'a') as f:
                     f.write(str(ex) + '\n')                  
             else:
                 cursor.execute('commit')
