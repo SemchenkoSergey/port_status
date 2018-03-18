@@ -3,6 +3,7 @@
 import MySQLdb
 import datetime
 import time
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from resources import Settings
 from resources import Functions_Session_Count as Func_SC
@@ -19,6 +20,9 @@ while True:
         Func_SC.check_tables(cursor)
         account_list = Func_SC.get_accounts(cursor)
         connect.close()
+        if len(account_list) == 0:
+            print('Необходимо сформировать таблицу abon_dsl!')
+            sys.exit()
         arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
         del account_list
         

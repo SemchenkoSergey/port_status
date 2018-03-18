@@ -216,7 +216,7 @@ def run_define_param(account_list):
     browser = Onyma.open_onyma()
     
     for account in account_list:
-        account_param = Onyma.find_account_param(browser, account_name)
+        account_param = Onyma.find_account_param(browser, account[0])
         if account_param is False:
             continue
         elif account_param == -1:

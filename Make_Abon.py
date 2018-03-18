@@ -24,5 +24,4 @@ arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Setting
 del account_list
 with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
     executor.map(Func_MA.run_define_param, arguments)
-
 print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
