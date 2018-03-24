@@ -28,4 +28,5 @@ while True:
     with ThreadPoolExecutor(max_workers=Settings.threads) as executor:
         executor.map(Func_PS.run, arguments)
     run_time = current_time
+    Func_PS.delete_old_records()
     print('--- Обработка завершена ({}) ---\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))

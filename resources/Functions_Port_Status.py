@@ -42,8 +42,24 @@ def check_tables():
             f.write(str(ex) + '\n')            
     else:
         cursor.execute('commit')
-    connect.close()    
+    connect.close()
 
+def delete_old_records():
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor() 
+    table = '''
+    DELETE
+    FROM data_dsl
+    WHERE CAST(datetime AS DATE) < DATE_ADD(CURRENT_DATE(), INTERVAL -{} DAY)
+    '''.format(Settings.days)
+    try:
+        cursor.execute(table)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+    connect.close()    
+    
 def connect_dslam(host):
     #Создание объекта dslam
     ip = host[0]
