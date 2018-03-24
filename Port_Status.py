@@ -15,6 +15,7 @@ Func_PS.check_tables()
 
 # Интервал запуска
 run_interval = int((24*60*60)/Settings.number_of_launches)
+delete_record_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
 
 # Запуск основного кода
 while True:
@@ -28,5 +29,10 @@ while True:
     with ThreadPoolExecutor(max_workers=Settings.threads) as executor:
         executor.map(Func_PS.run, arguments)
     run_time = current_time
-    Func_PS.delete_old_records()
+    
+    # Удаление старых записей
+    if delete_record_date != run_time.date():
+        Func_PS.delete_old_records()
+        delete_record_date = run_time.date()
+        
     print('--- Обработка завершена ({}) ---\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
