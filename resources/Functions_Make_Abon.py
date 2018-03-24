@@ -45,7 +45,7 @@ def create_abon_dsl ():
         bill VARCHAR(15),
         dmid VARCHAR(15),
         tmid VARCHAR(15),
-        tv ENUM('yes', 'no'),
+        tv ENUM('yes', 'no') DEFAULT 'no',
         timestamp TIMESTAMP,
         CONSTRAINT pk_abon_dsl PRIMARY KEY (phone_number)    
         )'''
