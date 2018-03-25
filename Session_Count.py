@@ -9,11 +9,12 @@ from resources import Settings
 from resources import Functions_Session_Count as Func_SC
 
 # Начало
+run_date = datetime.datetime.now().date()
+#run_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
 
-status = {'date' : datetime.datetime.now().date(),  'state' : True}
-#status = {'date' : datetime.datetime.now().date(),  'state' : False}
 while True:
-    if status['date'] == datetime.datetime.now().date() and status['state'] == False:
+    current_date = datetime.datetime.now().date()
+    if (current_date != run_date) and (datetime.datetime.now().hour >= 6):
         print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
         cursor = connect.cursor()
@@ -30,11 +31,7 @@ while True:
             executor.map(Func_SC.run, arguments)
             
         print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-        status['state'] = True
+        run_date = current_date
     else:
-        if (datetime.datetime.now().date()  - status['date'] > datetime.timedelta(0)) and (datetime.datetime.now().hour >= 6):
-            status['date'] = datetime.datetime.now().date()
-            status['state'] = False
-            continue
         time.sleep(60*30)
         continue
