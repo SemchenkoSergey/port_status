@@ -19,7 +19,7 @@ delete_record_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
 
 # Запуск основного кода
 while True:
-    current_time = datetime.datetime.now()    
+    current_time = datetime.datetime.now()
     if 'run_time' in locals():
         if (current_time - run_time).seconds < run_interval:
             time.sleep(300)
