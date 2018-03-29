@@ -68,7 +68,7 @@ WHERE
  AND ad.locality LIKE '%Никол%'
 GROUP BY ad.phone_number
 HAVING MIN(dd.max_dw_rate) > 15000
-ORDER BY ad.street, ad.house_number;
+ORDER BY ad.street, CAST(ad.house_number AS INT);
 
 
 	--- Сбитые модемы ---
@@ -87,7 +87,8 @@ WHERE
  AND ad.account_name IN (
   SELECT account_name
   FROM data_sessions
-  WHERE date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) AND count = 0
+  WHERE date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+   AND count = 0
  )
 GROUP BY ad.phone_number
 HAVING AVG(dd.max_dw_rate) IS NOT NULL
@@ -96,6 +97,9 @@ ORDER BY ad.locality, ad.street;
 
 	--- Абоненты со скоростью ниже ТП (сред. скор.) начиная с прошлого дня ---
 SELECT
+ ad.street 'Улица',
+ ad.house_number 'Дом',
+ ad.apartment_number '№ кв.',
  RIGHT(ad.phone_number, 5) 'Номер тел.',
  ROUND(AVG(dd.max_dw_rate)) 'Ср. прих. скор.',
  ad.tariff 'Тариф',
@@ -107,10 +111,10 @@ FROM abon_dsl ad INNER JOIN data_dsl dd
 WHERE
  dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
  AND ad.tariff IS NOT NULL
- AND ad.locality LIKE '%Никол%'
+ AND ad.locality LIKE '%Светлог%'
 GROUP BY ad.phone_number
-HAVING ROUND(AVG(dd.max_dw_rate)/ad.tariff, 2) <= 1
-ORDER BY 4;
+HAVING ROUND(AVG(dd.max_dw_rate)/ad.tariff, 2) < 1
+ORDER BY 4, ad.street, CAST(ad.house_number AS INT), ad.apartment_number;
 
 
 	--- Статистика разрывов за прошлый день(больше 30) ---
@@ -142,9 +146,9 @@ SELECT
  ad.house_number 'Дом',
  ad.apartment_number '№ кв.',
  RIGHT(ad.phone_number, 5) 'Номер тел.',
+ ad.tariff 'Тариф',
  ROUND(AVG(dd.max_up_rate)) 'Ср. исх. скор.',
- ROUND(AVG(dd.max_dw_rate)) 'Ср. вх. скор.',
- ad.tariff 'Тариф'
+ ROUND(AVG(dd.max_dw_rate)) 'Ср. вх. скор.'
 FROM abon_dsl ad INNER JOIN data_dsl dd
  ON ad.hostname=dd.hostname
  AND ad.board=dd.board
@@ -152,12 +156,59 @@ FROM abon_dsl ad INNER JOIN data_dsl dd
 WHERE
  dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
  AND ad.locality LIKE '%Светлог%'
- AND ad.street LIKE '%Телеграфн%'
+ AND ad.street LIKE '%Уральск%'
 GROUP BY ad.phone_number
 HAVING
  AVG(dd.max_up_rate) IS NOT NULL
  AND AVG(dd.max_dw_rate) IS NOT NULL
-ORDER BY ad.house_number, ad.apartment_number;
+ORDER BY CAST(ad.house_number AS INT), ad.apartment_number;
+
+
+	--- Статистика улицы за прошлый день с разрывами ---
+SELECT
+ ad.street 'Улица',
+ ad.house_number 'Дом',
+ ad.apartment_number '№ кв.',
+ RIGHT(ad.phone_number, 5) 'Номер тел.',
+ ad.tariff 'Тариф',
+ ROUND(AVG(dd.max_up_rate)) 'Ср. исх. скор.',
+ ROUND(AVG(dd.max_dw_rate)) 'Ср. вх. скор.',
+ ds.count 'Разрывы'
+FROM abon_dsl ad INNER JOIN data_dsl dd
+ ON ad.hostname=dd.hostname
+ AND ad.board=dd.board
+ AND ad.port=dd.port
+ INNER JOIN data_sessions ds
+  ON ad.account_name = ds.account_name
+  AND ds.date = CAST(dd.datetime AS DATE)
+WHERE
+ CAST(dd.datetime AS date) = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+ AND ad.locality LIKE '%Светлог%'
+ AND ad.street LIKE '%Уральск%'
+GROUP BY ad.phone_number
+HAVING
+ AVG(dd.max_up_rate) IS NOT NULL
+ AND AVG(dd.max_dw_rate) IS NOT NULL
+ORDER BY CAST(ad.house_number AS INT), ad.apartment_number;
+
+
+	--- Статистика абонента по дням с разрывами ---
+SELECT
+ RIGHT(ad.phone_number, 5) 'Номер тел.',
+ CAST(dd.datetime AS DATE) 'Дата',
+ ROUND(AVG(dd.max_up_rate)) 'Ср. исх. скор.',
+ ROUND(AVG(dd.max_dw_rate)) 'Ср. вх. скор.',
+ ds.count 'Разрывы'
+FROM abon_dsl ad INNER JOIN data_dsl dd
+ ON ad.hostname=dd.hostname
+ AND ad.board=dd.board
+ AND ad.port=dd.port
+ INNER JOIN data_sessions ds
+  ON ad.account_name = ds.account_name
+  AND ds.date = CAST(dd.datetime AS DATE)
+WHERE ad.phone_number = '8654740169'
+GROUP BY CAST(dd.datetime AS DATE)
+ORDER BY dd.datetime;
 
 
 	--- Статистика абонента за последние 3 дня ---
@@ -195,4 +246,5 @@ WHERE
  AND hostname LIKE '%ATS4-DSL2%'
  AND board=1
  AND port=3
-ORDER BY datetime; 
+ORDER BY datetime;
+
