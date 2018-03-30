@@ -140,6 +140,37 @@ GROUP BY ad.phone_number
 ORDER BY ds.count DESC;
 
 
+	--- Статистика разрывов за три дня (больше 30) ---
+SELECT
+ ad.locality 'Нас. пункт',
+ ad.street 'Улица',
+ ad.house_number 'Дом',
+ RIGHT(ad.phone_number, 5) 'Телефон',
+ ad.tariff 'Тариф',
+ ROUND(AVG(dd.max_dw_rate)) 'Скорость',
+ ds.count '1 день',
+ ds2.count '2 дня',
+ ds3.count '3 дня'
+FROM abon_dsl ad INNER JOIN data_dsl dd
+ ON ad.hostname=dd.hostname
+ AND ad.board=dd.board
+ AND ad.port=dd.port
+ INNER JOIN data_sessions ds
+  ON ad.account_name = ds.account_name
+  AND ds.date = CAST(dd.datetime AS DATE)
+  INNER JOIN data_sessions ds2
+   ON ad.account_name = ds2.account_name
+   AND ds2.date = DATE_ADD(CAST(dd.datetime AS DATE), INTERVAL -1 DAY)
+   INNER JOIN data_sessions ds3
+    ON ad.account_name = ds3.account_name
+    AND ds3.date = DATE_ADD(CAST(dd.datetime AS DATE), INTERVAL -2 DAY)
+WHERE
+ ds.date = DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
+ AND ds.count > 30
+GROUP BY ad.phone_number
+ORDER BY ds.count DESC, ds2.count DESC, ds3.count DESC;
+
+
 	--- Статистика улицы с прошлого дня ---
 SELECT
  ad.street 'Улица',
