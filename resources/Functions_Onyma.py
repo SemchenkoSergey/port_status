@@ -63,37 +63,44 @@ def find_account_param(browser, account_name):
         element.click()                
         element = browser.find_element_by_id("menu4185")
         element.click()
-        element = browser.find_element_by_partial_link_text(datetime.date.today().strftime('%Y'))
-        element.click()
-        elements = browser.find_elements_by_link_text(account_name)
-        elements_url = [x.get_attribute('href') for x in elements if 'service=201' in x.get_attribute('href')]
+        elements = browser.find_elements_by_partial_link_text(datetime.date.today().strftime('-%Y'))
+        elements_month = [x.get_attribute('href') for x in elements if 'menuitem=1844' in x.get_attribute('href')]
+        elements = browser.find_elements_by_partial_link_text((datetime.date.today() - datetime.timedelta(days=365)).strftime('-%Y'))
+        elements_month += [x.get_attribute('href') for x in elements if 'menuitem=1844' in x.get_attribute('href')]
+
+        max_date = datetime.datetime(2000, 1, 1)
+        url = ''
+        
+        for element_month in elements_month:
+            browser.get(element_month)    
+            elements = browser.find_elements_by_link_text(account_name)
+            elements_service = [x.get_attribute('href') for x in elements if 'service=201' in x.get_attribute('href')]    
+    
+            for element_service in elements_service:
+                browser.get(element_service)
+                url_date = browser.current_url
+                year = re.search(r'year=(.+?)&', url_date).group(1)
+                month = re.search(r'mon=(.+?)&', url_date).group(1)
+                elements_date = browser.find_elements_by_partial_link_text('.{}.{}'.format(month, year[2:]))
+                for element_date in elements_date:
+                    if 'menuitem=4185' in element_date.get_attribute('href'):
+                        current_date = datetime.datetime.strptime(element_date.get_attribute('title'), '%d.%m.%y')
+                        if current_date >= max_date:
+                            max_date = current_date
+                            url = browser.current_url
+                            break
+                        else:
+                            break
+            if url != '':
+                break
+
+        if url != '':
+            bill = re.search(r'bill=(\d+)', url).group(1)
+            tmid = re.search(r'tmid=(\d+)', url).group(1)
+            dmid = re.search(r'dmid=(\d+)', url).group(1)
+            return bill, tmid, dmid
+        else:
+            print('find_account_param: {}'.format(account_name))
+            return False        
     except:
         return -1
-    year = datetime.datetime.now().year
-    month = datetime.datetime.now().month
-    max_date = datetime.datetime(year, month, 1)
-    url = ''
-    
-    for element_url in elements_url:
-        try:
-            browser.get(element_url)
-            elements_date = browser.find_elements_by_partial_link_text(datetime.date.today().strftime('%m.%y'))
-            for element_date in elements_date:
-                if 'menuitem=4185' in element_date.get_attribute('href'):
-                    current_date = datetime.datetime.strptime(element_date.get_attribute('title'), '%d.%m.%y')
-                    if current_date >= max_date:
-                        max_date = current_date
-                        url = browser.current_url
-                        break
-                    else:
-                        break
-        except:
-            return -1
-    if url != '':
-        bill = re.search(r'bill=(\d+)', url).group(1)
-        tmid = re.search(r'tmid=(\d+)', url).group(1)
-        dmid = re.search(r'dmid=(\d+)', url).group(1)
-        return bill, tmid, dmid
-    else:
-        print('find_account_param: {}'.format(account_name))
-        return False
