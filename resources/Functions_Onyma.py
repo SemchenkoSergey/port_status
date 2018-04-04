@@ -96,9 +96,9 @@ def find_account_param(browser, account_name):
 
         if url != '':
             bill = re.search(r'bill=(\d+)', url).group(1)
-            tmid = re.search(r'tmid=(\d+)', url).group(1)
             dmid = re.search(r'dmid=(\d+)', url).group(1)
-            return bill, tmid, dmid
+            tmid = re.search(r'tmid=(\d+)', url).group(1)
+            return bill, dmid, tmid
         else:
             print('find_account_param: {}'.format(account_name))
             return False        
