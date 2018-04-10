@@ -224,12 +224,12 @@ def run_define_param(account_list):
             browser = Onyma.open_onyma()
             continue
         else:
-            bill, tmid, dmid = account_param
+            bill, dmid, tmid = account_param
         command = '''
         UPDATE abon_dsl
-        SET bill = "{}",  tmid = "{}", dmid = "{}"
+        SET bill = "{}",  dmid = "{}", tmid = "{}"
         WHERE account_name = "{}"
-        '''.format(bill, tmid, dmid, account[0])
+        '''.format(bill, dmid, tmid, account[0])
         try:
             cursor.execute(command)
         except:
