@@ -22,7 +22,8 @@ def create_error_files():
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
     with open('error_files' + os.sep + err_file_sql, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
-    
+
+
 def create_abon_dsl ():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
@@ -55,7 +56,15 @@ def create_abon_dsl ():
     else:
         cursor.execute('commit')
     connect.close()
-    
+
+
+def get_area_code(area):
+    codes = (('Петровский', 'Светлоград', '86547'),)
+    for code in codes:
+        if (code[0] in area) or (code[1] in area):
+            return code[2]
+    return False
+
 
 def argus_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
@@ -103,7 +112,10 @@ def argus_abon_dsl(file_list):
                     house_number = MySQLdb.NULL
                     apartment_number = MySQLdb.NULL
                 
-                phone_number = '"86547{}"'.format(cell_phone)
+                area_code = get_area_code(area)
+                if area_code is False:
+                    continue
+                phone_number = '"{}{}"'.format(area_code, cell_phone)
                 command = '''
                 INSERT INTO abon_dsl
                 (phone_number, area, locality, street, house_number, apartment_number, hostname, board, port, protect)
@@ -118,8 +130,8 @@ def argus_abon_dsl(file_list):
                 else:
                     cursor.execute('commit')
     connect.close()
-    
-    
+
+   
 def onyma_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()   
@@ -136,7 +148,15 @@ def onyma_abon_dsl(file_list):
             reader = csv.reader(f, delimiter=';')
             for row in reader:
                 if row[41] != 'deleted' and re.search(r'[xA]DSL', row[37]):
-                    phone_number = '"{}"'.format(row[7]) if len(row[7]) == 10 else '"{}"'.format('86547' + row[7])
+                    area_code = get_area_code(row[1])
+                    if area_code is False:
+                        continue
+                    if len(row[7]) == 10:
+                        phone_number = '"{}"'.format(row[7])
+                    elif len(row[7]) > 0:
+                        phone_number = '"{}{}"'.format(area_code, row[7])
+                    else:
+                        continue
                     
                     # Определение IPTV
                     if 'IPTV' in row[23]:
