@@ -114,7 +114,7 @@ WHERE
  AND ad.locality LIKE '%Светлог%'
 GROUP BY ad.phone_number
 HAVING ROUND(AVG(dd.max_dw_rate)/ad.tariff, 2) < 1
-ORDER BY 4, ad.street, CAST(ad.house_number AS INT), ad.apartment_number;
+ORDER BY 7, ad.street, CAST(ad.house_number AS INT), ad.apartment_number;
 
 
 	--- Статистика разрывов за прошлый день(больше 30) ---
