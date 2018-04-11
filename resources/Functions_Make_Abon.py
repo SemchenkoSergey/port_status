@@ -129,6 +129,7 @@ def argus_abon_dsl(file_list):
                         f.write(str(ex) + '\n')
                 else:
                     cursor.execute('commit')
+        print('Обработан файл {}'.format(file))
     connect.close()
 
    
@@ -212,7 +213,8 @@ def onyma_abon_dsl(file_list):
                         with open('error_files' + os.sep + err_file_sql, 'a') as f:
                             f.write(str(ex) + '\n')                          
                     else:
-                        cursor.execute('commit')                        
+                        cursor.execute('commit')
+        print('Обработан файл {}'.format(file))
     connect.close()
 
 
