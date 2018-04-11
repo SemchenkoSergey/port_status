@@ -22,9 +22,9 @@ hosts = (('ip', '5600'),
          
 # Mysql
 db_host = 'localhost'
-db_user = ''
-db_password = ''
-db_name = ''
+db_user = 'inet'
+db_password = 'inet'
+db_name = 'inet'
 
 ### Session_Count ###
 threads_count = 3
