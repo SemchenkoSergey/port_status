@@ -22,6 +22,8 @@ ORDER BY ad.street, CAST(ad.house_number AS INT);
 
 
 --- Сбитые модемы ---
+(Необходима допроверка вручную. Если сессия не успела разорваться до запуска Session_Count.py, она в Ониме еще не будет учтена.)
+
 SELECT
  RIGHT(ad.phone_number, 5) 'Номер тел.',
  ad.locality 'Нас. пункт',
