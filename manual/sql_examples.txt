@@ -1,4 +1,6 @@
-﻿	--- Выборка для IPTV (7 дней) --- 
+﻿--- Выборка для IPTV (7 дней) --- 
+(вместо Светлоград указывается населенный пункт)
+
 SELECT
  RIGHT(ad.phone_number, 5) 'Номер тел.',
  ad.street 'Улица',
@@ -13,13 +15,13 @@ WHERE
  dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)
  AND dd.max_dw_rate IS NOT NULL
  AND ad.tv = 'no'
- AND ad.locality LIKE '%Никол%'
+ AND ad.locality LIKE '%Светлоград%'
 GROUP BY ad.phone_number
 HAVING MIN(dd.max_dw_rate) > 15000
 ORDER BY ad.street, CAST(ad.house_number AS INT);
 
 
-	--- Сбитые модемы ---
+--- Сбитые модемы ---
 SELECT
  RIGHT(ad.phone_number, 5) 'Номер тел.',
  ad.locality 'Нас. пункт',
@@ -43,7 +45,9 @@ HAVING AVG(dd.max_dw_rate) IS NOT NULL
 ORDER BY ad.locality, ad.street;
 
 
-	--- Абоненты со скоростью ниже ТП (сред. скор.) начиная с прошлого дня ---
+--- Абоненты со скоростью ниже ТП (сред. скор.) начиная с прошлого дня ---
+(вместо Светлоград указывается населенный пункт)
+
 SELECT
  ad.street 'Улица',
  ad.house_number 'Дом',
@@ -65,7 +69,7 @@ HAVING ROUND(AVG(dd.max_dw_rate)/ad.tariff, 2) < 1
 ORDER BY 7, ad.street, CAST(ad.house_number AS INT), ad.apartment_number;
 
 
-	--- Статистика разрывов за прошлый день(больше 30) ---
+--- Статистика разрывов за прошлый день(больше 30) ---
 SELECT
  ad.locality 'Нас. пункт',
  ad.street 'Улица',
@@ -88,7 +92,7 @@ GROUP BY ad.phone_number
 ORDER BY ds.count DESC;
 
 
-	--- Статистика разрывов за три дня (больше 30) ---
+--- Статистика разрывов за три дня (больше 30) ---
 SELECT
  ad.locality 'Нас. пункт',
  ad.street 'Улица',
@@ -119,7 +123,9 @@ GROUP BY ad.phone_number
 ORDER BY ds.count DESC, ds2.count DESC, ds3.count DESC;
 
 
-	--- Статистика улицы с прошлого дня ---
+--- Статистика улицы с прошлого дня ---
+(вместо Светлоград указывается населенный пункт, вместо Уральская указывается улица)
+
 SELECT
  ad.street 'Улица',
  ad.house_number 'Дом',
@@ -134,8 +140,8 @@ FROM abon_dsl ad INNER JOIN data_dsl dd
  AND ad.port=dd.port
 WHERE
  dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)
- AND ad.locality LIKE '%Светлог%'
- AND ad.street LIKE '%Уральск%'
+ AND ad.locality LIKE '%Светлоград%'
+ AND ad.street LIKE '%Уральская%'
 GROUP BY ad.phone_number
 HAVING
  AVG(dd.max_up_rate) IS NOT NULL
@@ -144,6 +150,8 @@ ORDER BY CAST(ad.house_number AS INT), ad.apartment_number;
 
 
 	--- Статистика улицы за прошлый день с разрывами ---
+(вместо Светлоград указывается населенный пункт, вместо Уральская указывается улица)
+
 SELECT
  ad.street 'Улица',
  ad.house_number 'Дом',
@@ -171,7 +179,9 @@ HAVING
 ORDER BY CAST(ad.house_number AS INT), ad.apartment_number;
 
 
-	--- Статистика абонента по дням с разрывами ---
+--- Статистика абонента по дням с разрывами ---
+(вместо 8654740169 указывается номер телефона)
+
 SELECT
  RIGHT(ad.phone_number, 5) 'Номер тел.',
  CAST(dd.datetime AS DATE) 'Дата',
@@ -190,7 +200,9 @@ GROUP BY CAST(dd.datetime AS DATE)
 ORDER BY dd.datetime;
 
 
-	--- Статистика абонента за последние 3 дня ---
+--- Статистика абонента за последние 3 дня ---
+(вместо 8654740169 указывается номер телефона)
+
 SELECT
  RIGHT(ad.phone_number, 5) 'Номер тел.',
  dd.max_up_rate 'Макс. исх. скор.',
@@ -209,7 +221,9 @@ WHERE
 ORDER BY dd.datetime;
 
 
-	--- Статистика порта за последние 3 дня ---
+--- Статистика порта за последние 3 дня ---
+(вместо ATS4-DSL2 указывается hostname, board - плата, port - номер порта)
+
 SELECT
  hostname,
  board,
