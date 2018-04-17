@@ -22,6 +22,7 @@ Func_MA.onyma_abon_dsl(file_list)
 account_list = Func_MA.get_accounts()
 arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
 del account_list
+print('\nПолучение данных из Онимы...')
 with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
     executor.map(Func_MA.run_define_param, arguments)
 print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))

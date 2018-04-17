@@ -22,7 +22,8 @@ def create_error_files():
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
     with open('error_files' + os.sep + err_file_sql, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
-    
+
+
 def create_abon_dsl ():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
@@ -55,7 +56,40 @@ def create_abon_dsl ():
     else:
         cursor.execute('commit')
     connect.close()
-    
+
+
+def get_area_code(area):
+    codes = (('БЛАГОДАРНЕНСКИЙ', 'Благодарный', '86549'),
+             ('БУДЕННОВСКИЙ', 'Буденновск', '86559'),
+             ('ГЕОРГИЕВСКИЙ', 'Георгиевск', '87951'),
+             ('СОВЕТСКИЙ', 'Зеленокумск', '86552'),
+             ('ИЗОБИЛЬНЕНСКИЙ', 'Изобильный', '86545'),
+             ('ИПАТОВСКИЙ', 'Ипатово', '86542'),
+             ('МИНЕРАЛОВОДСКИЙ', 'Минеральные Воды', '87922'),
+             ('ШПАКОВСКИЙ', 'Михайловск', '86553'),
+             ('НЕФТЕКУМСКИЙ', 'Нефтекумск', '86558'),
+             ('НОВОАЛЕКСАНДРОВСКИЙ', 'Новоалександровск', '86544'),
+             ('КИРОВСКИЙ', 'Новопавловск', '87938'),
+             ('ПЕТРОВСКИЙ', 'Светлоград', '86547'),
+             ('АЛЕКСАНДРОВСКИЙ', 'Александровское', '86557'),
+             ('АРЗГИРСКИЙ', 'Арзгир', '86560'),
+             ('ГРАЧЕВСКИЙ', 'Грачевка', '86540'),
+             ('АПАНАСЕНКОВСКИЙ', 'Дивное', '86555'),
+             ('ТРУНОВСКИЙ', 'Донское', '86546'),
+             ('КОЧУБЕЕВСКИЙ', 'Кочубеевское', '86550'),
+             ('КРАСНОГВАРДЕЙСКИЙ', 'Красногвардейское', '86541'),
+             ('АНДРОПОВСКИЙ', 'Курсавка', '86556'),
+             ('ЛЕВОКУМСКИЙ', 'Левокумское', '86543'),
+             ('ТУРКМЕНСКИЙ', 'Летняя Ставка', '86565'),
+             ('НОВОСЕЛИЦКИЙ', 'Новоселицкое', '86548'),
+             ('СТЕПНОВСКИЙ', 'Степное', '86563'),
+             ('ПРЕДГОРНЫЙ', 'Ессентукская', '87961'),
+             ('КУРСКИЙ', 'Курская', '87964'))
+    for code in codes:
+        if (code[0].lower() in area.lower()) or (code[1].lower() in area.lower()):
+            return code[2]
+    return False
+
 
 def argus_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
@@ -103,7 +137,10 @@ def argus_abon_dsl(file_list):
                     house_number = MySQLdb.NULL
                     apartment_number = MySQLdb.NULL
                 
-                phone_number = '"86547{}"'.format(cell_phone)
+                area_code = get_area_code(area)
+                if area_code is False:
+                    continue
+                phone_number = '"{}{}"'.format(area_code, cell_phone)
                 command = '''
                 INSERT INTO abon_dsl
                 (phone_number, area, locality, street, house_number, apartment_number, hostname, board, port, protect)
@@ -117,9 +154,10 @@ def argus_abon_dsl(file_list):
                         f.write(str(ex) + '\n')
                 else:
                     cursor.execute('commit')
+        print('Обработан файл {}'.format(file))
     connect.close()
-    
-    
+
+   
 def onyma_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()   
@@ -136,7 +174,15 @@ def onyma_abon_dsl(file_list):
             reader = csv.reader(f, delimiter=';')
             for row in reader:
                 if row[41] != 'deleted' and re.search(r'[xA]DSL', row[37]):
-                    phone_number = '"{}"'.format(row[7]) if len(row[7]) == 10 else '"{}"'.format('86547' + row[7])
+                    area_code = get_area_code(row[1])
+                    if area_code is False:
+                        continue
+                    if (len(row[7]) == 10) or (area_code in row[7]):
+                        phone_number = '"{}"'.format(row[7])
+                    elif (len(row[7]) < 10) and (len(row[7]) > 0):
+                        phone_number = '"{}{}"'.format(area_code, row[7]).replace('-', '')
+                    else:
+                        continue
                     
                     # Определение IPTV
                     if 'IPTV' in row[23]:
@@ -192,7 +238,8 @@ def onyma_abon_dsl(file_list):
                         with open('error_files' + os.sep + err_file_sql, 'a') as f:
                             f.write(str(ex) + '\n')                          
                     else:
-                        cursor.execute('commit')                        
+                        cursor.execute('commit')
+        print('Обработан файл {}'.format(file))
     connect.close()
 
 

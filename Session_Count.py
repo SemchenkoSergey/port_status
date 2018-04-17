@@ -10,11 +10,12 @@ from resources import Functions_Session_Count as Func_SC
 
 # Начало
 run_date = datetime.datetime.now().date()
+print('Проверка сессий начнется завтра после 5 часов утра...\n')
 #run_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
 
 while True:
     current_date = datetime.datetime.now().date()
-    if (current_date != run_date) and (datetime.datetime.now().hour >= 6):
+    if (current_date != run_date) and (datetime.datetime.now().hour >= 5):
         print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
         cursor = connect.cursor()
@@ -33,5 +34,5 @@ while True:
         print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         run_date = current_date
     else:
-        time.sleep(60*30)
+        time.sleep(60*10)
         continue

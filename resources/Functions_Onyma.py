@@ -100,7 +100,7 @@ def find_account_param(browser, account_name):
             tmid = re.search(r'tmid=(\d+)', url).group(1)
             return bill, dmid, tmid
         else:
-            print('find_account_param: {}'.format(account_name))
+            print('Не удалось обработать учетное имя: {}'.format(account_name))
             return False        
     except:
         return -1
