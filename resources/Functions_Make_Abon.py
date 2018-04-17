@@ -4,11 +4,8 @@ import MySQLdb
 import re
 import csv
 import os
-import time
 import datetime
 from resources import Settings
-from resources import Functions_Onyma as Onyma
-from selenium import webdriver as webdriver
 
 err_file_sql = 'error-abon_dsl-sql.txt'
 err_file_argus = 'error-abon_dsl-argus.txt'
@@ -84,7 +81,14 @@ def get_area_code(area):
              ('НОВОСЕЛИЦКИЙ', 'Новоселицкое', '86548'),
              ('СТЕПНОВСКИЙ', 'Степное', '86563'),
              ('ПРЕДГОРНЫЙ', 'Ессентукская', '87961'),
-             ('КУРСКИЙ', 'Курская', '87964'))
+             ('КУРСКИЙ', 'Курская', '87964'),
+             ('Ессентуки', 'Ессентуки', '87934'),
+             ('Железноводск', 'Железноводск', '87932'),
+             ('Кисловодск', 'Кисловодск', '87937'),
+             ('Лермонтов', 'Лермонтов', '87935'),
+             ('Невинномысск', 'Невинномысск', '86554'),
+             ('Пятигорск', 'Пятигорск', '8793'),
+             ('Ставрополь', 'Ставрополь', '8652'))
     for code in codes:
         if (code[0].lower() in area.lower()) or (code[1].lower() in area.lower()):
             return code[2]
@@ -98,7 +102,7 @@ def argus_abon_dsl(file_list):
     # Подготовка регулярных выражений
     re_dsl = re.compile(r'([\w(DSL)-]+)\[[\d\.]+\].+?(\d+)[_/](\d+)_? - (\d+)')
     re_protect = re.compile(r'(ЗП\d+)')
-    re_address = re.compile(r'(.+), (.+), (.+), (.+), кв. (.+)?')
+    re_address = re.compile(r'(.+, )?(.+), (.+), (.+), кв. (.+)?')
     
     for file in file_list:
         if file.split('.')[-1] != 'csv':
@@ -126,17 +130,19 @@ def argus_abon_dsl(file_list):
                 
                 # Обработка ячейки с адресом
                 if re_address.search(cell_address):
-                    area = '"{}"'.format(re_address.search(cell_address).group(1)) if re_address.search(cell_address).group(1) != None else MySQLdb.NULL
-                    locality = '"{}"'.format(re_address.search(cell_address).group(2)) if re_address.search(cell_address).group(2) != None else MySQLdb.NULL
-                    street = '"{}"'.format(re_address.search(cell_address).group(3)) if re_address.search(cell_address).group(3) != None else MySQLdb.NULL
-                    house_number = '"{}"'.format(re_address.search(cell_address).group(4)) if re_address.search(cell_address).group(4) != None else MySQLdb.NULL
-                    apartment_number = '"{}"'.format(re_address.search(cell_address).group(5)) if re_address.search(cell_address).group(5) != None else MySQLdb.NULL
+                    if re_address.search(cell_address).group(1) is not None:
+                        area = '"{}"'.format(re_address.search(cell_address).group(1)[:-2])
+                    else:
+                        area = '"{}"'.format(re_address.search(cell_address).group(2))
+                    locality = '"{}"'.format(re_address.search(cell_address).group(2))
+                    street = '"{}"'.format(re_address.search(cell_address).group(3))
+                    house_number = '"{}"'.format(re_address.search(cell_address).group(4))
+                    if re_address.search(cell_address).group(5) is not None:
+                        apartment_number = '"{}"'.format(re_address.search(cell_address).group(5))
+                    else:
+                        apartment_number = MySQLdb.NULL
                 else:
-                    locality = MySQLdb.NULL
-                    street = MySQLdb.NULL
-                    house_number = MySQLdb.NULL
-                    apartment_number = MySQLdb.NULL
-                
+                    continue                
                 area_code = get_area_code(area)
                 if area_code is False:
                     continue
@@ -225,7 +231,7 @@ def onyma_abon_dsl(file_list):
                         speed = 15 * 1024
                     else:
                         with open('error_files' + os.sep + err_file_onyma, 'a') as f:
-                                f.write(tariff + '\n')
+                                f.write('{}: {}\n'.format(phone_number, tariff))
                         continue
                     command = '''
                     UPDATE abon_dsl
@@ -241,48 +247,3 @@ def onyma_abon_dsl(file_list):
                         cursor.execute('commit')
         print('Обработан файл {}'.format(file))
     connect.close()
-
-
-def get_accounts():
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor()
-    command = '''
-    SELECT account_name
-    FROM abon_dsl
-    WHERE account_name IS NOT NULL
-    '''
-    cursor.execute(command)
-    result = cursor.fetchall()
-    connect.close()
-    return result
-
-
-def run_define_param(account_list):
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor()
-    browser = Onyma.open_onyma()
-    
-    for account in account_list:
-        account_param = Onyma.find_account_param(browser, account[0])
-        if account_param is False:
-            continue
-        elif account_param == -1:
-            browser.quit()
-            browser = Onyma.open_onyma()
-            continue
-        else:
-            bill, dmid, tmid = account_param
-        command = '''
-        UPDATE abon_dsl
-        SET bill = "{}",  dmid = "{}", tmid = "{}"
-        WHERE account_name = "{}"
-        '''.format(bill, dmid, tmid, account[0])
-        try:
-            cursor.execute(command)
-        except:
-            pass
-        else:
-            cursor.execute('commit')
-    connect.close()
-    browser.quit()
-
