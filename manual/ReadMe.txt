@@ -50,6 +50,10 @@ mysql -u operator -poperator inet
 
 Настройки программ:
 -------------------
+Добавить юзера на DSLAM:
+terminal user-profile add
+terminal user name
+
 Файл настроек 'resources\Settings.py'
 Нужно заполнить логины/пароли (кавычки не убирать)
 login_5600 = ''
