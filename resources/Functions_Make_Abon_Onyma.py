@@ -13,9 +13,9 @@ def create_abon_onyma():
         table = '''
         CREATE TABLE abon_onyma (
         account_name VARCHAR(20) NOT NULL,
-        bill VARCHAR(15),
-        dmid VARCHAR(15),
-        tmid VARCHAR(15),
+        bill VARCHAR(15) NOT NULL,
+        dmid VARCHAR(15) NOT NULL,
+        tmid VARCHAR(15) NOT NULL,
         CONSTRAINT pk_abon_onyma PRIMARY KEY (account_name)    
         )'''
         cursor.execute(table)

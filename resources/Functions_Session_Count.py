@@ -26,9 +26,9 @@ def check_tables(cursor):
     table = '''
         CREATE TABLE IF NOT EXISTS abon_onyma (
         account_name VARCHAR(20) NOT NULL,
-        bill VARCHAR(15),
-        dmid VARCHAR(15),
-        tmid VARCHAR(15),
+        bill VARCHAR(15) NOT NULL,
+        dmid VARCHAR(15) NOT NULL,
+        tmid VARCHAR(15) NOT NULL,
         CONSTRAINT pk_abon_onyma PRIMARY KEY (account_name)    
         )'''
     try:
@@ -85,7 +85,7 @@ def update_abon_onyma(cursor, bill, dmid, tmid, account_name):
     else:
         cursor.execute('commit')
 
-def run(account_list, arguments):
+def run(arguments):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     browser = Onyma.open_onyma()
