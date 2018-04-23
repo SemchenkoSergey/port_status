@@ -23,18 +23,58 @@ def check_tables(cursor):
     else:
         cursor.execute('commit')
 
+    table = '''
+        CREATE TABLE IF NOT EXISTS abon_onyma (
+        account_name VARCHAR(20) NOT NULL,
+        bill VARCHAR(15),
+        dmid VARCHAR(15),
+        tmid VARCHAR(15),
+        CONSTRAINT pk_abon_onyma PRIMARY KEY (account_name)    
+        )'''
+    try:
+        cursor.execute(table)
+    except:
+        pass
+    else:
+        cursor.execute('commit')    
+
 def get_accounts(cursor):
     command = '''
-    SELECT account_name, bill, dmid, tmid
+    SELECT account_name
     FROM abon_dsl
     WHERE account_name IS NOT NULL
     '''  
     cursor.execute(command)
     return cursor.fetchall()
 
-def update_abon_dsl(cursor, bill, dmid, tmid, account_name): 
+def get_onyma_params(cursor):
     command = '''
-    UPDATE abon_dsl
+    SELECT account_name, bill, dmid, tmid
+    FROM abon_onyma
+    '''  
+    cursor.execute(command)
+    onyma_param = cursor.fetchall()
+    result = {}
+    for param in onyma_param:
+        result[onyma_param[0]] = {'bill' : onyma_param[1], 'dmid' : onyma_param[2], 'tmid' : onyma_param[3]}
+    return result
+    
+
+def insert_abon_onyma(cursor, bill, dmid, tmid, account_name): 
+    command = '''
+    INSERT INTO abon_onyma
+    VALUES ("{}", "{}", "{}", "{}")
+    '''.format(account_name, bill, dmid, tmid)
+    try:
+        cursor.execute(command)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+        
+def update_abon_onyma(cursor, bill, dmid, tmid, account_name): 
+    command = '''
+    UPDATE abon_onyma
     SET bill = "{}", dmid = "{}", tmid = "{}"
     WHERE account_name = "{}"
     '''.format(bill, dmid, tmid, account_name)
@@ -45,29 +85,31 @@ def update_abon_dsl(cursor, bill, dmid, tmid, account_name):
     else:
         cursor.execute('commit')
 
-def run(account_list):
+def run(account_list, arguments):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     browser = Onyma.open_onyma()
+    account_list = arguments[0]
+    onyma_param_list = arguments[1]
 
     prev_day = datetime.date.today() - datetime.timedelta(days=1)
     for account in account_list:
         account_name = account[0]
-        if account[1] is not None and account[2] is not None and account[3] is not None:
-            bill = account[1]
-            dmid = account[2]
-            tmid = account[3]
+        if account_name in onyma_param_list:
+            bill = onyma_param_list['bill']
+            dmid = onyma_param_list['dmid']
+            tmid = onyma_param_list['tmid']
         else:
-            account_param = Onyma.find_account_param(browser, account_name)
-            if account_param is False:
+            onyma_param = Onyma.find_account_param(browser, account_name)
+            if onyma_param is False:
                 continue
-            elif account_param == -1:
+            elif onyma_param == -1:
                 browser.quit()
                 browser = Onyma.open_onyma()
                 continue
             else:            
-                bill, dmid, tmid = account_param
-                update_abon_dsl(cursor, bill, dmid, tmid, account_name)
+                bill, dmid, tmid = onyma_param
+                insert_abon_onyma(cursor, bill, dmid, tmid, account_name)
         count = Onyma.count_sessions(bill,  dmid,  tmid,  prev_day,  browser,  cursor)
         if count is False:
             continue
@@ -76,17 +118,17 @@ def run(account_list):
             browser = Onyma.open_onyma()
             continue
         elif count == 0:
-            account_param = Onyma.find_account_param(browser, account_name)
-            if account_param is False:
+            onyma_param = Onyma.find_account_param(browser, account_name)
+            if onyma_param is False:
                 continue
-            elif account_param == -1:
+            elif onyma_param == -1:
                 browser.quit()
                 browser = Onyma.open_onyma()
                 continue
             else:
-                cur_bill, cur_dmid, cur_tmid = account_param
+                cur_bill, cur_dmid, cur_tmid = onyma_param
             if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
-                update_abon_dsl(cursor, cur_bill, cur_dmid, cur_tmid, account_name)
+                update_abon_onyma(cursor, cur_bill, cur_dmid, cur_tmid, account_name)
                 count = Onyma.count_sessions(cur_bill,  cur_dmid,  cur_tmid,  prev_day,  browser,  cursor)          
         command = '''
         INSERT INTO data_sessions

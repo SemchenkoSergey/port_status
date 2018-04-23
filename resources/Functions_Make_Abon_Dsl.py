@@ -21,7 +21,7 @@ def create_error_files():
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
 
 
-def create_abon_dsl():
+def create_abon_dsl ():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     try:
@@ -40,9 +40,6 @@ def create_abon_dsl():
         protect VARCHAR(10),
         tariff SMALLINT UNSIGNED,
         account_name VARCHAR(20),
-        bill VARCHAR(15),
-        dmid VARCHAR(15),
-        tmid VARCHAR(15),
         tv ENUM('yes', 'no') DEFAULT 'no',
         timestamp TIMESTAMP,
         CONSTRAINT pk_abon_dsl PRIMARY KEY (phone_number)    

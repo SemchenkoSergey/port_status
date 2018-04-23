@@ -5,6 +5,27 @@ from resources import Settings
 from resources import Functions_Onyma as Onyma
 
 
+def create_abon_onyma():
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    try:
+        cursor.execute('DROP TABLE IF EXISTS abon_dsl')
+        table = '''
+        CREATE TABLE abon_onyma (
+        account_name VARCHAR(20) NOT NULL,
+        bill VARCHAR(15),
+        dmid VARCHAR(15),
+        tmid VARCHAR(15),
+        CONSTRAINT pk_abon_onyma PRIMARY KEY (account_name)    
+        )'''
+        cursor.execute(table)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+    connect.close()
+    
+
 def get_accounts():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
@@ -35,10 +56,9 @@ def run_define_param(account_list):
         else:
             bill, dmid, tmid = account_param
         command = '''
-        UPDATE abon_dsl
-        SET bill = "{}",  dmid = "{}", tmid = "{}"
-        WHERE account_name = "{}"
-        '''.format(bill, dmid, tmid, account[0])
+        INSERT INTO abon_onyma
+        VALUES ("{}", "{}", "{}", "{}")
+        '''.format(account[0], bill, dmid, tmid)
         try:
             cursor.execute(command)
         except:
