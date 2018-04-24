@@ -9,7 +9,7 @@ def create_abon_onyma():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     try:
-        cursor.execute('DROP TABLE IF EXISTS abon_dsl')
+        cursor.execute('DROP TABLE IF EXISTS abon_onyma')
         table = '''
         CREATE TABLE abon_onyma (
         account_name VARCHAR(20) NOT NULL,
