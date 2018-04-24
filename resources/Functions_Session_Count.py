@@ -56,7 +56,7 @@ def get_onyma_params(cursor):
     onyma_param = cursor.fetchall()
     result = {}
     for param in onyma_param:
-        result[onyma_param[0]] = {'bill' : onyma_param[1], 'dmid' : onyma_param[2], 'tmid' : onyma_param[3]}
+        result[param[0]] = {'bill' : param[1], 'dmid' : param[2], 'tmid' : param[3]}
     return result
     
 
@@ -96,9 +96,9 @@ def run(arguments):
     for account in account_list:
         account_name = account[0]
         if account_name in onyma_param_list:
-            bill = onyma_param_list['bill']
-            dmid = onyma_param_list['dmid']
-            tmid = onyma_param_list['tmid']
+            bill = onyma_param_list[account_name]['bill']
+            dmid = onyma_param_list[account_name]['dmid']
+            tmid = onyma_param_list[account_name]['tmid']
         else:
             onyma_param = Onyma.find_account_param(browser, account_name)
             if onyma_param is False:
