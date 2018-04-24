@@ -11,6 +11,9 @@ Func_MA_Onyma.create_abon_onyma()
 
 # Заполнение полей bill, dmid, tmid
 account_list = Func_MA_Onyma.get_accounts()
+if len(account_list) == 0:
+    print('Необходимо сформировать таблицу abon_dsl!')
+    sys.exit()
 arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
 print('\nПолучение данных из Онимы...')
 with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
