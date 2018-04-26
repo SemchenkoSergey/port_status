@@ -112,10 +112,10 @@ FROM abon_dsl ad INNER JOIN data_dsl dd
  INNER JOIN data_sessions ds
   ON ad.account_name = ds.account_name
   AND ds.date = CAST(dd.datetime AS DATE)
-  INNER JOIN data_sessions ds2
+  LEFT OUTER JOIN data_sessions ds2
    ON ad.account_name = ds2.account_name
    AND ds2.date = DATE_ADD(CAST(dd.datetime AS DATE), INTERVAL -1 DAY)
-   INNER JOIN data_sessions ds3
+   LEFT OUTER JOIN data_sessions ds3
     ON ad.account_name = ds3.account_name
     AND ds3.date = DATE_ADD(CAST(dd.datetime AS DATE), INTERVAL -2 DAY)
 WHERE
