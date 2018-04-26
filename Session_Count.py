@@ -21,12 +21,12 @@ while True:
         cursor = connect.cursor()
         Func_SC.check_tables(cursor)
         account_list = Func_SC.get_accounts(cursor)
-        connect.close()
         if len(account_list) == 0:
             print('Необходимо сформировать таблицу abon_dsl!')
             sys.exit()
-        arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
-        del account_list
+        onyma_param_list = Func_SC.get_onyma_params(cursor)
+        connect.close()
+        arguments = [(account_list[x::Settings.threads_count], onyma_param_list)  for x in range(0,  Settings.threads_count)]
         
         with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
             executor.map(Func_SC.run, arguments)

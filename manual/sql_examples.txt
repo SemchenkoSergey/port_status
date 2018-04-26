@@ -151,7 +151,7 @@ HAVING
 ORDER BY CAST(ad.house_number AS INT), ad.apartment_number;
 
 
-	--- Статистика улицы за прошлый день с разрывами ---
+--- Статистика улицы за прошлый день с разрывами ---
 (вместо Светлоград указывается населенный пункт, вместо Уральская указывается улица)
 
 SELECT
@@ -242,4 +242,43 @@ WHERE
  AND board=1
  AND port=3
 ORDER BY datetime;
+
+
+--- Средняя скорость по улицам с разбивкой по ЗП (3 дня) ---
+(вместо Светлоград указывается населенный пункт)
+SELECT
+ ad.street AS 'Улица',
+ ad.protect AS 'ЗП',
+ ROUND(AVG(dd.max_up_rate)) AS 'Ср. исх. ск.',
+ ROUND(AVG(dd.max_dw_rate)) AS 'Ср. вх. ск.',
+ count(DISTINCT ad.phone_number) AS 'Кол-во абон.'
+FROM abon_dsl ad INNER JOIN data_dsl dd
+ ON ad.hostname=dd.hostname
+ AND ad.board=dd.board
+ AND ad.port=dd.port
+WHERE
+ dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)
+ AND ad.locality LIKE '%Светлоград%'
+GROUP BY ad.street, ad.protect
+HAVING AVG(dd.max_dw_rate) IS NOT NULL
+ORDER BY ad.street, ad.protect;
+
+
+--- Средняя скорость по улицам (3 дня) ---
+(вместо Светлоград указывается населенный пункт)
+SELECT
+ ad.street AS 'Улица',
+ ROUND(AVG(dd.max_up_rate)) AS 'Ср. исх. ск.',
+ ROUND(AVG(dd.max_dw_rate)) AS 'Ср. вх. ск.',
+ count(DISTINCT ad.phone_number) AS 'Кол-во абон.'
+FROM abon_dsl ad INNER JOIN data_dsl dd
+ ON ad.hostname=dd.hostname
+ AND ad.board=dd.board
+ AND ad.port=dd.port
+WHERE
+ dd.datetime >= DATE_ADD(CURRENT_DATE(), INTERVAL -3 DAY)
+ AND ad.locality LIKE '%Светлоград%'
+GROUP BY ad.street
+HAVING AVG(dd.max_dw_rate) IS NOT NULL
+ORDER BY ad.street;
 
