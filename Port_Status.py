@@ -5,8 +5,9 @@ from resources import Functions_Port_Status as Func_PS
 from resources import Settings
 import datetime
 import time
+import warnings
 
-
+warnings.filterwarnings("ignore")
 print('Программа запущена...\n')
 # Создание файла для записи ошибок
 Func_PS.create_error_file()

@@ -4,9 +4,12 @@ import MySQLdb
 import datetime
 import time
 import sys
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from resources import Settings
 from resources import Functions_Session_Count as Func_SC
+
+warnings.filterwarnings("ignore")
 
 # Начало
 run_date = datetime.datetime.now().date()
