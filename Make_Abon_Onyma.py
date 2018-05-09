@@ -2,10 +2,12 @@
 
 import os
 import datetime
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from resources import Settings
 from resources import Functions_Make_Abon_Onyma as Func_MA_Onyma
 
+warnings.filterwarnings("ignore")
 print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 Func_MA_Onyma.create_abon_onyma()
 

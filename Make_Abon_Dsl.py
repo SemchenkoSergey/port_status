@@ -2,9 +2,11 @@
 
 import os
 import datetime
+import warnings
 from resources import Settings
 from resources import Functions_Make_Abon_Dsl as Func_MA_Dsl
 
+warnings.filterwarnings("ignore")
 print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 Func_MA_Dsl.create_error_files()
 Func_MA_Dsl.create_abon_dsl()
