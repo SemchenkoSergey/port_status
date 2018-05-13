@@ -41,20 +41,21 @@ def get_accounts():
 
 
 def run_define_param(account_list):
+    count_processed = 0
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
-    browser = Onyma.open_onyma()
+    onyma = Onyma.get_onyma()
     
     for account in account_list:
-        account_param = Onyma.find_account_param(browser, account[0])
+        account_param = Onyma.find_account_param(onyma, account[0])
         if account_param is False:
             continue
         elif account_param == -1:
-            browser.quit()
-            browser = Onyma.open_onyma()
+            onyma = Onyma.get_onyma()
             continue
         else:
             bill, dmid, tmid = account_param
+        count_processed += 1
         command = '''
         INSERT INTO abon_onyma
         VALUES ("{}", "{}", "{}", "{}")
@@ -66,5 +67,6 @@ def run_define_param(account_list):
         else:
             cursor.execute('commit')
     connect.close()
-    browser.quit()
+    del onyma
+    return count_processed
 

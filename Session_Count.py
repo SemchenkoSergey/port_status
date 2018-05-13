@@ -19,7 +19,8 @@ print('Проверка сессий начнется завтра после 5 
 while True:
     current_date = datetime.datetime.now().date()
     if (current_date != run_date) and (datetime.datetime.now().hour >= 5):
-        print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        print('Начало работы: {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        count = 0
         connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
         cursor = connect.cursor()
         Func_SC.check_tables(cursor)
@@ -32,9 +33,12 @@ while True:
         arguments = [(account_list[x::Settings.threads_count], onyma_param_list)  for x in range(0,  Settings.threads_count)]
         
         with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
-            executor.map(Func_SC.run, arguments)
-            
-        print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            result = executor.map(Func_SC.run, arguments)
+        
+        for i in result:
+            count += i
+        print('Обработано {} записей.'.format(count))
+        print('Завершение работы: {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         run_date = current_date
     else:
         time.sleep(60*10)
