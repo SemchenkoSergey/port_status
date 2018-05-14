@@ -47,7 +47,8 @@ def run_define_param(account_list):
     onyma = Onyma.get_onyma()
     
     for account in account_list:
-        account_param = Onyma.find_account_param(onyma, account[0])
+        account_name = account[0]
+        account_param = Onyma.find_account_param(onyma, account_name)
         if account_param is False:
             continue
         elif account_param == -1:
@@ -59,7 +60,7 @@ def run_define_param(account_list):
         command = '''
         INSERT INTO abon_onyma
         VALUES ("{}", "{}", "{}", "{}")
-        '''.format(account[0], bill, dmid, tmid)
+        '''.format(account_name, bill, dmid, tmid)
         try:
             cursor.execute(command)
         except:

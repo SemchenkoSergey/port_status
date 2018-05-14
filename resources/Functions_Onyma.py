@@ -1,6 +1,7 @@
 # coding: utf8
 
 import re
+import sys
 import requests
 from resources import Settings
 from bs4 import BeautifulSoup as BS
@@ -10,11 +11,12 @@ def get_onyma():
     session = requests.Session()
     auth_url = 'https://10.144.196.37/onyma/login.htms'
     auth_payload = {'LOGIN': Settings.onyma_login, 'PASSWD': Settings.onyma_password, 'enter': 'Вход'}
-    result = session.post(auth_url, data=auth_payload, verify=False)
-    if result.ok:
-        return session
-    else:
-        return False
+    try:
+        result = session.post(auth_url, data=auth_payload, verify=False)
+    except:
+        print('https://10.144.196.37/onyma/login.htms не доступен. Проверьте соединение с сетью.')
+        sys.exit()
+    return session
 
 def count_sessions(onyma, bill,  dmid,  tmid,  date):
     html = onyma.get("https://10.144.196.37/onyma/main/ddstat.htms?bill={}&dt={}&mon={}&year={}&service=201&dmid={}&tmid={}".format(bill,  date.day,  date.month, date.year,  dmid,  tmid))

@@ -31,7 +31,7 @@ while True:
         onyma_param_list = Func_SC.get_onyma_params(cursor)
         connect.close()
         arguments = [(account_list[x::Settings.threads_count], onyma_param_list)  for x in range(0,  Settings.threads_count)]
-        
+  
         with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
             result = executor.map(Func_SC.run, arguments)
         

@@ -6,7 +6,6 @@ import datetime
 import MySQLdb
 from resources import Settings
 from resources import Functions_Onyma as Onyma
-from selenium import webdriver as webdriver
 
 def check_tables(cursor):
     table = '''
@@ -84,10 +83,25 @@ def update_abon_onyma(cursor, bill, dmid, tmid, account_name):
         pass
     else:
         cursor.execute('commit')
-
+        
+def insert_data_sessions(cursor, account_name, prev_day, count):
+    command = '''
+    INSERT INTO data_sessions
+    (account_name, date, count)
+    VALUES
+    ("{}", "{}", {})
+    '''.format(account_name, prev_day.strftime('%Y-%m-%d'), count)
+    try:
+        cursor.execute(command)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+        
 def run(arguments):
     count_processed = 0
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
     onyma = Onyma.get_onyma()
     account_list = arguments[0]
     onyma_param_list = arguments[1]
@@ -105,6 +119,8 @@ def run(arguments):
                 onyma = Onyma.get_onyma()
                 continue
             elif onyma_param is False:
+                count_processed += 1
+                insert_data_sessions(cursor, account_name, prev_day, 0)
                 continue
             else:            
                 bill, dmid, tmid = onyma_param
@@ -115,29 +131,23 @@ def run(arguments):
             continue
         elif count == 0:
             onyma_param = Onyma.find_account_param(onyma, account_name)
-            if onyma_param is False:
-                pass
+            if onyma_param == -1:
+                onyma = Onyma.get_onyma()
+                continue
+            elif onyma_param is False:
+                count_processed += 1
+                insert_data_sessions(cursor, account_name, prev_day, 0)
+                continue            
             else:
                 cur_bill, cur_dmid, cur_tmid = onyma_param
-            if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
-                update_abon_onyma(cursor, cur_bill, cur_dmid, cur_tmid, account_name)
+                if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
+                    update_abon_onyma(cursor, cur_bill, cur_dmid, cur_tmid, account_name)
                 count = Onyma.count_sessions(onyma, cur_bill,  cur_dmid,  cur_tmid,  prev_day)
-                if count is False:
+                if count == -1:
                     onyma = Onyma.get_onyma()
                     continue                
         count_processed += 1
-        command = '''
-        INSERT INTO data_sessions
-        (account_name, date, count)
-        VALUES
-        ("{}", "{}", {})
-        '''.format(account_name, prev_day.strftime('%Y-%m-%d'), count)
-        try:
-            cursor.execute(command)
-        except:
-            pass
-        else:
-            cursor.execute('commit')        
+        insert_data_sessions(cursor, account_name, prev_day, count)
     connect.close()
     del onyma
     return count_processed
