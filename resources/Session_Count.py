@@ -25,7 +25,7 @@ def main():
             Func_SC.check_tables(cursor)
             account_list = Func_SC.get_accounts(cursor)
             if len(account_list) == 0:
-                print('Необходимо сформировать таблицу abon_dsl!')
+                print('\n!!! Необходимо сформировать таблицу abon_dsl !!!\n')
                 sys.exit()
             onyma_param_list = Func_SC.get_onyma_params(cursor)
             connect.close()
