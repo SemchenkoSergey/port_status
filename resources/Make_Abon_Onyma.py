@@ -5,6 +5,9 @@ import datetime
 from concurrent.futures import ThreadPoolExecutor
 from resources import Settings
 from resources import Functions_Make_Abon_Onyma as Func_MA_Onyma
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 def main():
@@ -26,3 +29,7 @@ def main():
     print('Обработано {} записей.'.format(count))
     print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     sys.exit()
+
+
+if __name__ == '__main__':
+    main()
