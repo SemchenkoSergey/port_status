@@ -104,6 +104,7 @@ def argus_abon_dsl(file_list):
     for file in file_list:
         if file.split('.')[-1] != 'csv':
             continue
+        print('Обработка файла {}'.format(file))
         with open(file,  encoding='windows-1251') as f:
             reader = csv.reader(f, delimiter=';')
             for row in reader:
@@ -157,7 +158,6 @@ def argus_abon_dsl(file_list):
                         f.write(str(ex) + '\n')
                 else:
                     cursor.execute('commit')
-        print('Обработан файл {}'.format(file))
     connect.close()
 
    
@@ -173,6 +173,7 @@ def onyma_abon_dsl(file_list):
     for file in file_list:
         if file.split('.')[-1] != 'csv':
             continue
+        print('Обработка файла {}'.format(file))
         with open(file,  encoding='windows-1251') as f:
             reader = csv.reader(f, delimiter=';')
             for row in reader:
@@ -242,5 +243,4 @@ def onyma_abon_dsl(file_list):
                             f.write(str(ex) + '\n')                          
                     else:
                         cursor.execute('commit')
-        print('Обработан файл {}'.format(file))
     connect.close()

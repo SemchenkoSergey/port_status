@@ -7,7 +7,7 @@ from resources import Functions_Make_Abon_Dsl as Func_MA_Dsl
 
 
 def main():
-    print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    print("Начало работы: {}\n".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     Func_MA_Dsl.create_error_files()
     Func_MA_Dsl.create_abon_dsl()
     
@@ -19,5 +19,5 @@ def main():
     file_list = ['in' + os.sep + 'onyma' + os.sep + x for x in os.listdir('in' + os.sep + 'onyma')]
     Func_MA_Dsl.onyma_abon_dsl(file_list)
     
-    print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     sys.exit()

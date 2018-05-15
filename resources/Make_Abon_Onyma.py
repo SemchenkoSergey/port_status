@@ -15,7 +15,7 @@ def main():
     # Заполнение полей bill, dmid, tmid
     account_list = Func_MA_Onyma.get_accounts()
     if len(account_list) == 0:
-        print('Необходимо сформировать таблицу abon_dsl!')
+        print('\n!!! Необходимо сформировать таблицу abon_dsl !!!\n')
         sys.exit()
     arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
     print('\nПолучение данных из Онимы...')
@@ -24,5 +24,5 @@ def main():
     for i in result:
         count += i
     print('Обработано {} записей.'.format(count))
-    print("Завершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     sys.exit()
