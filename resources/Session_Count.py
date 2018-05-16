@@ -36,7 +36,7 @@ def main():
             
             for i in result:
                 count += i
-            print('Обработано {} записей.'.format(count))
+            print('\nОбработано {} записей.'.format(count))
             print('Завершение работы: {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             run_date = current_date
         else:

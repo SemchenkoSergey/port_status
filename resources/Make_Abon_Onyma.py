@@ -23,6 +23,6 @@ def main():
         result = executor.map(Func_MA_Onyma.run_define_param, arguments)
     for i in result:
         count += i
-    print('Обработано {} записей.'.format(count))
+    print('\nОбработано {} записей.'.format(count))
     print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     sys.exit()
