@@ -4,9 +4,6 @@ import os
 import sys
 import datetime
 from resources import Functions_Make_Abon_Dsl as Func_MA_Dsl
-import warnings
-
-warnings.filterwarnings("ignore")
 
 
 def main():
@@ -24,7 +21,3 @@ def main():
     
     print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
     sys.exit()
-    
-
-if __name__ == '__main__':
-    main()

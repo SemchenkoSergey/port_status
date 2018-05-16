@@ -7,9 +7,6 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from resources import Settings
 from resources import Functions_Session_Count as Func_SC
-import warnings
-
-warnings.filterwarnings("ignore")
 
 
 def main():
@@ -45,7 +42,3 @@ def main():
         else:
             time.sleep(60*10)
             continue
-
-
-if __name__ == '__main__':
-    main()

@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # coding: utf8
 
-import os
+from resources import Port_Status
+from resources import Session_Count
+from resources import Make_Abon_Dsl
+from resources import Make_Abon_Onyma
 import sys
-import subprocess
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def main():
@@ -20,16 +24,16 @@ def main():
             sys.exit()
         elif number == '1':
             print()
-            subprocess.call(['python3', 'resources{}Port_Status.py'.format(os.sep)])
+            Port_Status.main()
         elif number == '2':
             print()
-            subprocess.call(['python3', 'resources{}Session_Count.py'.format(os.sep)])
+            Session_Count.main()
         elif number == '3':
             print()
-            subprocess.call(['python3', 'resources{}Make_Abon_Dsl.py'.format(os.sep)])
+            Make_Abon_Dsl.main()
         elif number == '4':
             print()
-            subprocess.call(['python3', 'resources{}Make_Abon_Onyma.py'.format(os.sep)])
+            Make_Abon_Onyma.main()
         else:
             print('\n!!! Нужно ввести число от 1 до 5 !!!\n')    
 

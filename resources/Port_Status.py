@@ -5,9 +5,6 @@ from resources import Functions_Port_Status as Func_PS
 from resources import Settings
 import datetime
 import time
-import warnings
-
-warnings.filterwarnings("ignore")
 
 
 def main():
@@ -40,7 +37,3 @@ def main():
             delete_record_date = run_time.date()
             
         print('--- Обработка завершена ({}) ---\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-
-
-if __name__ == '__main__':
-    main()
