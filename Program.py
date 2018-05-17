@@ -23,18 +23,22 @@ def main():
             from resources import Port_Status
             print()
             Port_Status.main()
+            sys.exit()
         elif number == '2':
             from resources import Session_Count
             print()
             Session_Count.main()
+            sys.exit()
         elif number == '3':
             from resources import Make_Abon_Dsl
             print()
             Make_Abon_Dsl.main()
+            sys.exit()
         elif number == '4':
             from resources import Make_Abon_Onyma
             print()
             Make_Abon_Onyma.main()
+            sys.exit()
         else:
             print('\n!!! Нужно ввести число от 1 до 5 !!!\n')    
 
