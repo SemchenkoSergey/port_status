@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf8
 
-from resources import Port_Status
-from resources import Session_Count
-from resources import Make_Abon_Dsl
-from resources import Make_Abon_Onyma
 import sys
 import warnings
 
@@ -24,15 +20,19 @@ def main():
         if number == '5':
             sys.exit()
         elif number == '1':
+            from resources import Port_Status
             print()
             Port_Status.main()
         elif number == '2':
+            from resources import Session_Count
             print()
             Session_Count.main()
         elif number == '3':
+            from resources import Make_Abon_Dsl
             print()
             Make_Abon_Dsl.main()
         elif number == '4':
+            from resources import Make_Abon_Onyma
             print()
             Make_Abon_Onyma.main()
         else:
