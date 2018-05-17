@@ -1,28 +1,92 @@
 # coding: utf8
 
-import sys
+import MySQLdb
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 from resources import Settings
-from resources import Functions_Make_Abon_Onyma as Func_MA_Onyma
+from resources import Onyma
+
+
+def create_abon_onyma():
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    try:
+        cursor.execute('DROP TABLE IF EXISTS abon_onyma')
+        table = '''
+        CREATE TABLE abon_onyma (
+        account_name VARCHAR(20) NOT NULL,
+        bill VARCHAR(15) NOT NULL,
+        dmid VARCHAR(15) NOT NULL,
+        tmid VARCHAR(15) NOT NULL,
+        CONSTRAINT pk_abon_onyma PRIMARY KEY (account_name)    
+        )'''
+        cursor.execute(table)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+    connect.close()
+
+def get_accounts():
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    command = '''
+    SELECT account_name
+    FROM abon_dsl
+    WHERE account_name IS NOT NULL
+    '''
+    cursor.execute(command)
+    result = cursor.fetchall()
+    connect.close()
+    return result
+
+def run_define_param(account_list):
+    count_processed = 0
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    onyma = Onyma.get_onyma()
+    
+    for account in account_list:
+        account_name = account[0]
+        account_param = Onyma.find_account_param(onyma, account_name)
+        if account_param is False:
+            continue
+        elif account_param == -1:
+            onyma = Onyma.get_onyma()
+            continue
+        else:
+            bill, dmid, tmid = account_param
+        count_processed += 1
+        command = '''
+        INSERT INTO abon_onyma
+        VALUES ("{}", "{}", "{}", "{}")
+        '''.format(account_name, bill, dmid, tmid)
+        try:
+            cursor.execute(command)
+        except:
+            pass
+        else:
+            cursor.execute('commit')
+    connect.close()
+    del onyma
+    return count_processed
 
 
 def main():
     print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    Func_MA_Onyma.create_abon_onyma()
+    create_abon_onyma()
     count = 0
     
     # Заполнение полей bill, dmid, tmid
-    account_list = Func_MA_Onyma.get_accounts()
+    account_list = get_accounts()
     if len(account_list) == 0:
         print('\n!!! Необходимо сформировать таблицу abon_dsl !!!\n')
-        sys.exit()
+        return
     arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
     print('\nПолучение данных из Онимы...')
     with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
-        result = executor.map(Func_MA_Onyma.run_define_param, arguments)
+        result = executor.map(run_define_param, arguments)
     for i in result:
         count += i
     print('\nОбработано {} записей.'.format(count))
     print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    sys.exit()
