@@ -101,6 +101,8 @@ def insert_data_sessions(cursor, account_name, prev_day, count):
         
 def run(arguments):
     count_processed = 0
+    count_insert = 0
+    count_update = 0
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     onyma = Onyma.get_onyma()
@@ -126,6 +128,7 @@ def run(arguments):
             else:            
                 bill, dmid, tmid = onyma_param
                 insert_abon_onyma(cursor, bill, dmid, tmid, account_name)
+                count_insert += 1
         count = Onyma.count_sessions(onyma, bill,  dmid,  tmid,  prev_day)
         if count == -1:
             onyma = Onyma.get_onyma()
@@ -143,6 +146,7 @@ def run(arguments):
                 cur_bill, cur_dmid, cur_tmid = onyma_param
                 if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
                     update_abon_onyma(cursor, cur_bill, cur_dmid, cur_tmid, account_name)
+                    count_update += 1
                 count = Onyma.count_sessions(onyma, cur_bill,  cur_dmid,  cur_tmid,  prev_day)
                 if count == -1:
                     onyma = Onyma.get_onyma()
@@ -151,7 +155,7 @@ def run(arguments):
         insert_data_sessions(cursor, account_name, prev_day, count)
     connect.close()
     del onyma
-    return count_processed
+    return (count_processed, count_insert, count_update)
 
 
 def main():
@@ -164,7 +168,9 @@ def main():
         current_date = datetime.datetime.now().date()
         if (current_date != run_date) and (datetime.datetime.now().hour >= 5):
             print('Начало работы: {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-            count = 0
+            count_processed = 0
+            count_insert = 0
+            count_update = 0
             connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
             cursor = connect.cursor()
             check_tables(cursor)
@@ -178,10 +184,16 @@ def main():
       
             with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
                 result = executor.map(run, arguments)
+           
+            for count in result:
+                count_processed += count[0]
+                count_insert += count[1]
+                count_update += count[2]
+
+            print('\nОбработано: {}'.format(count_processed))
+            print('Добавлено: {}'.format(count_insert))
+            print('Обновлено: {}\n'.format(count_update))
             
-            for i in result:
-                count += i
-            print('\nОбработано {} записей.'.format(count))
             print('Завершение работы: {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             run_date = current_date
         else:

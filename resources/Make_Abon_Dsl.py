@@ -20,7 +20,6 @@ def create_error_files():
     with open('error_files' + os.sep + err_file_sql, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
 
-
 def create_abon_dsl ():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
@@ -50,7 +49,6 @@ def create_abon_dsl ():
     else:
         cursor.execute('commit')
     connect.close()
-
 
 def get_area_code(area):
     codes = (('БЛАГОДАРНЕНСКИЙ', 'Благодарный', '86549'),
@@ -90,7 +88,6 @@ def get_area_code(area):
         if (code[0].lower() in area.lower()) or (code[1].lower() in area.lower()):
             return code[2]
     return False
-
 
 def argus_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
@@ -159,8 +156,7 @@ def argus_abon_dsl(file_list):
                 else:
                     cursor.execute('commit')
     connect.close()
-
-   
+ 
 def onyma_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()   

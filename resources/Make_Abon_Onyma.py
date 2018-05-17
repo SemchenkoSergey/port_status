@@ -88,5 +88,5 @@ def main():
         result = executor.map(run_define_param, arguments)
     for i in result:
         count += i
-    print('\nОбработано {} записей.'.format(count))
+    print('\nОбработано: {}'.format(count))
     print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
