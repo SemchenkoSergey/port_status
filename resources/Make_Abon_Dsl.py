@@ -1,10 +1,10 @@
 # coding: utf8
 
-import MySQLdb
+import os
 import re
 import csv
-import os
 import datetime
+import MySQLdb
 from resources import Settings
 
 err_file_sql = 'error-abon_dsl-sql.txt'
@@ -19,7 +19,6 @@ def create_error_files():
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
     with open('error_files' + os.sep + err_file_sql, 'w') as f:
             f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
-
 
 def create_abon_dsl ():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
@@ -50,7 +49,6 @@ def create_abon_dsl ():
     else:
         cursor.execute('commit')
     connect.close()
-
 
 def get_area_code(area):
     codes = (('БЛАГОДАРНЕНСКИЙ', 'Благодарный', '86549'),
@@ -91,7 +89,6 @@ def get_area_code(area):
             return code[2]
     return False
 
-
 def argus_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()        
@@ -104,6 +101,7 @@ def argus_abon_dsl(file_list):
     for file in file_list:
         if file.split('.')[-1] != 'csv':
             continue
+        print('Обработка файла {}'.format(file))
         with open(file,  encoding='windows-1251') as f:
             reader = csv.reader(f, delimiter=';')
             for row in reader:
@@ -157,10 +155,8 @@ def argus_abon_dsl(file_list):
                         f.write(str(ex) + '\n')
                 else:
                     cursor.execute('commit')
-        print('Обработан файл {}'.format(file))
     connect.close()
-
-   
+ 
 def onyma_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()   
@@ -173,6 +169,7 @@ def onyma_abon_dsl(file_list):
     for file in file_list:
         if file.split('.')[-1] != 'csv':
             continue
+        print('Обработка файла {}'.format(file))
         with open(file,  encoding='windows-1251') as f:
             reader = csv.reader(f, delimiter=';')
             for row in reader:
@@ -242,5 +239,20 @@ def onyma_abon_dsl(file_list):
                             f.write(str(ex) + '\n')                          
                     else:
                         cursor.execute('commit')
-        print('Обработан файл {}'.format(file))
     connect.close()
+
+
+def main():
+    print("Начало работы: {}\n".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    create_error_files()
+    create_abon_dsl()
+    
+    # Обработка файлов в директории in/argus/
+    file_list = ['in' + os.sep + 'argus' + os.sep + x for x in os.listdir('in' + os.sep + 'argus')]
+    argus_abon_dsl(file_list)
+    
+    # Обработка файлов в директории in/onyma/
+    file_list = ['in' + os.sep + 'onyma' + os.sep + x for x in os.listdir('in' + os.sep + 'onyma')]
+    onyma_abon_dsl(file_list)
+    
+    print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))

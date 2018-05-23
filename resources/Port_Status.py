@@ -1,11 +1,12 @@
 # coding: utf8
 
+import datetime
+import time
 import MySQLdb
 import os
-import time
-import datetime
 from resources import Settings
 from resources import DslamHuawei
+from concurrent.futures import ThreadPoolExecutor
 
 DslamHuawei.LOGGING = True
 
@@ -142,3 +143,35 @@ def run(arguments):
     print('DSLAM ip {}, hostname {} обработан'.format(ip, hostname))
     del dslam
     return True
+
+
+def main():
+    print('Программа запущена...\n')
+    # Создание файла для записи ошибок
+    create_error_file()
+    # Проверка есть ли таблица
+    check_tables()
+    
+    # Интервал запуска
+    run_interval = int((24*60*60)/Settings.number_of_launches)
+    delete_record_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
+    
+    # Запуск основного кода
+    while True:
+        current_time = datetime.datetime.now()
+        if 'run_time' in locals():
+            if (current_time - run_time).seconds < run_interval:
+                time.sleep(300)
+                continue
+        print('--- Начало обработки ({}) ---\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        arguments = [(current_time, host) for host in Settings.hosts]
+        with ThreadPoolExecutor(max_workers=Settings.threads) as executor:
+            executor.map(run, arguments)
+        run_time = current_time
+        
+        # Удаление старых записей
+        if delete_record_date != run_time.date():
+            delete_old_records()
+            delete_record_date = run_time.date()
+            
+        print('--- Обработка завершена ({}) ---\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))

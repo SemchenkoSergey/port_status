@@ -1,8 +1,10 @@
 # coding: utf8
 
 import MySQLdb
+import datetime
+from concurrent.futures import ThreadPoolExecutor
 from resources import Settings
-from resources import Functions_Onyma as Onyma
+from resources import Onyma
 
 
 def create_abon_onyma():
@@ -24,7 +26,6 @@ def create_abon_onyma():
     else:
         cursor.execute('commit')
     connect.close()
-    
 
 def get_accounts():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
@@ -39,26 +40,27 @@ def get_accounts():
     connect.close()
     return result
 
-
 def run_define_param(account_list):
+    count_processed = 0
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
-    browser = Onyma.open_onyma()
+    onyma = Onyma.get_onyma()
     
     for account in account_list:
-        account_param = Onyma.find_account_param(browser, account[0])
+        account_name = account[0]
+        account_param = Onyma.find_account_param(onyma, account_name)
         if account_param is False:
             continue
         elif account_param == -1:
-            browser.quit()
-            browser = Onyma.open_onyma()
+            onyma = Onyma.get_onyma()
             continue
         else:
             bill, dmid, tmid = account_param
+        count_processed += 1
         command = '''
         INSERT INTO abon_onyma
         VALUES ("{}", "{}", "{}", "{}")
-        '''.format(account[0], bill, dmid, tmid)
+        '''.format(account_name, bill, dmid, tmid)
         try:
             cursor.execute(command)
         except:
@@ -66,5 +68,25 @@ def run_define_param(account_list):
         else:
             cursor.execute('commit')
     connect.close()
-    browser.quit()
+    del onyma
+    return count_processed
 
+
+def main():
+    print("Начало работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    create_abon_onyma()
+    count = 0
+    
+    # Заполнение полей bill, dmid, tmid
+    account_list = get_accounts()
+    if len(account_list) == 0:
+        print('\n!!! Необходимо сформировать таблицу abon_dsl !!!\n')
+        return
+    arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
+    print('\nПолучение данных из Онимы...')
+    with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
+        result = executor.map(run_define_param, arguments)
+    for i in result:
+        count += i
+    print('\nОбработано: {}'.format(count))
+    print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
