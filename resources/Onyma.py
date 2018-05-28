@@ -99,8 +99,6 @@ def find_account_speed(onyma, account_name):
                 if cur_speed is not False:
                     if cur_speed > speed:
                         speed = cur_speed
-                        if i == 1:
-                            print('{} - скорость ТП {}'.format(account_name, speed))
     if speed > 0:
         return speed
     else:
