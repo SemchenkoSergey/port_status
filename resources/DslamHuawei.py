@@ -15,6 +15,7 @@ class DslamHuawei():
         """ Проверка вывода команды """
         bad_strings = ('Failure: System is busy', 'please wait',  'Unknown command')
         if command not in str_out:
+            print(str_out.__repr__())
             return False
         for string in bad_strings:
             if string in str_out:
@@ -28,7 +29,7 @@ class DslamHuawei():
         # Распознавание версии ПО
         str_out = self.write_read_data('display version')
         self.version = re.search(r'\b(MA.+?)\b', str_out).group(1)
-        #self.set_adsl_line_profile()
+        self.set_adsl_line_profile()
     
     def __del__(self):
         self.tn.close()
@@ -91,7 +92,7 @@ class DslamHuawei():
                 print('{}: ошибка чтения. Команда - {}'.format(self.hostname, command_line))
                 print(str(ex).split('\n')[0])
                 return False
-            result += self.tn.before.decode('utf-8').replace('\r',  '')
+            result += re.sub(r'[^A-Za-z0-9\n\./: _-]|(.\x1b\[..)', '', self.tn.before.decode('utf-8'))
             if LOGGING:
                 self.logging('out',  result)
             if result.count('\n') == 1 and not short:
@@ -258,22 +259,22 @@ class DslamHuawei():
                 result.append((match.group(1), match.group(2)))
             return result
     
-    #def get_adsl_line_profile(self, profile_index):
-        #""" Получить описание профайла линии по его индексу """
-        #if profile_index not in self.adsl_line_profile:
-            #return 'The profile does not exist'
-        #command = 'display adsl line-profile'
-        #command_line = '{} {}'.format(command, profile_index)
-        #str_out = self.write_read_data(command_line)
-        #if str_out is False:
-            #return False
-        #result = ''
-        #for line in str_out.split('\n'):
-            #if len(line) < 1:
-                #continue
-            #if line[0] == ' ' and line[3] != '-':
-                #result += (line + '\n')
-        #return result
+    def get_adsl_line_profile(self, profile_index):
+        """ Получить описание профайла линии по его индексу """
+        if profile_index not in self.adsl_line_profile:
+            return 'The profile does not exist'
+        command = 'display adsl line-profile'
+        command_line = '{} {}'.format(command, profile_index)
+        str_out = self.write_read_data(command_line)
+        if str_out is False:
+            return False
+        result = ''
+        for line in str_out.split('\n'):
+            if len(line) < 1:
+                continue
+            if line[0] == ' ' and line[3] != '-':
+                result += (line + '\n')
+        return result
 
     def get_time(self):
         """ Получить Дату - Время с DSLAM """
@@ -301,16 +302,23 @@ class DslamHuawei():
         self.write_read_data('quit',  short=True)
         self.write_read_data('quit',  short=True)
         
-    #def set_adsl_line_profile_port(self, board, port, profile_index):
-        #""" Изменить профайл на порту """
-        #if profile_index not in self.adsl_line_profile:
-            #profile_index = 1
-        #self.write_read_data('config',  short=True)
-        #self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
-        #self.write_read_data('deactivate {}'.format(port))
-        #self.write_read_data('activate {} profile-index {}'.format(port, profile_index))
-        #self.write_read_data('quit',  short=True)
-        #self.write_read_data('quit',  short=True)        
+    def set_adsl_line_profile_port(self, board, port, profile_index):
+        """ Изменить профайл на порту """
+        if profile_index not in self.adsl_line_profile:
+            profile_index = 1
+        self.write_read_data('config',  short=True)
+        self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
+        self.write_read_data('deactivate {}'.format(port))
+        self.write_read_data('activate {} profile-index {}'.format(port, profile_index))
+        self.write_read_data('quit',  short=True)
+        self.write_read_data('quit',  short=True)
+        
+    def execute_command(self, command, short=False):
+        command_line = command.strip()
+        str_out = self.write_read_data(command, short)
+        if str_out is False:
+            return False
+        return str_out
 
 
 class DslamHuawei5600(DslamHuawei):
