@@ -60,9 +60,9 @@ class DslamHuawei():
         self.hostname = re.search('([\w-]+)$', self.tn.before.decode('utf-8')).group(1)
     
     def logging(self,  in_out, line):
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
-        with open('logs{}{} {}.txt'.format(os.sep, self.ip,  datetime.datetime.now().strftime('%d-%m-%y')), 'a') as log_file:
+        if not os.path.exists('dslam_logs'):
+            os.mkdir('dslam_logs')
+        with open('dslam_logs{}{} {}.txt'.format(os.sep, self.ip,  datetime.datetime.now().strftime('%d-%m-%y')), 'a') as log_file:
             log_file.write('{} {}\n{}\n**************************************\n'.format(in_out,  datetime.datetime.now().strftime('%H:%M:%S'),  line))
         
     def alive(self):
@@ -275,6 +275,23 @@ class DslamHuawei():
             if line[0] == ' ' and line[3] != '-':
                 result += (line + '\n')
         return result
+    
+    def get_adsl_line_profile_board(self, board):
+        """ Получить список активированных портов с платы """
+        if board not in self.boards:
+            return []
+        regex = re.compile(r' +(\w*) +ADSL +Activat(ed|ing) +(\w*)')
+        command_line = 'display board 0/{}'.format(board)
+        str_out = self.write_read_data(command_line)
+        if str_out is False:
+            return False
+        result = []
+        for line in str_out.split('\n'):
+            try:
+                result.append(int(regex.search(line).group(3)))
+            except:
+                continue
+        return result       
 
     def get_time(self):
         """ Получить Дату - Время с DSLAM """
