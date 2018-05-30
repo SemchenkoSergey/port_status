@@ -15,7 +15,6 @@ class DslamHuawei():
         """ Проверка вывода команды """
         bad_strings = ('Failure: System is busy', 'please wait',  'Unknown command')
         if command not in str_out:
-            print(str_out.__repr__())
             return False
         for string in bad_strings:
             if string in str_out:
@@ -87,7 +86,7 @@ class DslamHuawei():
         result = ''
         while True:
             try:
-                self.tn.expect('.{}.*#'.format(self.hostname), timeout=60)
+                self.tn.expect('.{}.*#'.format(self.hostname), timeout=30)
             except Exception as ex:
                 print('{}: ошибка чтения. Команда - {}'.format(self.hostname, command_line))
                 print(str(ex).split('\n')[0])
@@ -98,9 +97,11 @@ class DslamHuawei():
             if result.count('\n') == 1 and not short:
                 continue
             if self.check_out(command_line, result):
+                #if LOGGING:
+                    #self.logging('out',  result)                
                 return result
             else:
-                time.sleep(60)
+                time.sleep(15)
                 while True:
                     try:
                         self.tn.expect('#', timeout=1)
@@ -114,7 +115,7 @@ class DslamHuawei():
         for count in range(0, 5):
             self.write_data(command_line)
             result = self.read_data(command_line,  short)
-            if result != -1:
+            if (result != -1) and (result is not False):
                 return result
         return False
 
@@ -305,6 +306,8 @@ class DslamHuawei():
     
     def set_activate_port(self, board, port):
         """ Активировать порт """
+        if (board not in self.boards) or (port not in range(0, self.ports)):
+            return False        
         self.write_read_data('config',  short=True)
         self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
         self.write_read_data('activate {}'.format(port))
@@ -313,6 +316,8 @@ class DslamHuawei():
     
     def set_deactivate_port(self, board, port):
         """ Деактивировать порт """
+        if (board not in self.boards) or (port not in range(0, self.ports)):
+            return False         
         self.write_read_data('config',  short=True)
         self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
         self.write_read_data('deactivate {}'.format(port))
@@ -321,8 +326,10 @@ class DslamHuawei():
         
     def set_adsl_line_profile_port(self, board, port, profile_index):
         """ Изменить профайл на порту """
+        if (board not in self.boards) or (port not in range(0, self.ports)):
+            return False         
         if profile_index not in self.adsl_line_profile:
-            profile_index = 1
+            return False  
         self.write_read_data('config',  short=True)
         self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
         self.write_read_data('deactivate {}'.format(port))
