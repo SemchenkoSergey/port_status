@@ -27,6 +27,16 @@ def count_sessions(onyma, bill,  dmid,  tmid,  date):
             return -1
     return int(count)
 
+def update_tv(onyma, bill, date):
+    try:
+        html = onyma.get("https://10.144.196.37/onyma/main/mstat.htms?bill={}&mon={}&year={}".format(bill, date.month, date.year))
+        if 'Предоставление услуг IPTV' in html.text:
+            return True
+        else:
+            return False
+    except:
+        return -1
+
 def find_account_param(onyma, account_name):
     url_ip = 'https://10.144.196.37'
     url_main = 'https://10.144.196.37/onyma/main/'
