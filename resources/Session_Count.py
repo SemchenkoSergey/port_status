@@ -37,16 +37,33 @@ def check_tables(cursor):
     except:
         pass
     else:
-        cursor.execute('commit')    
+        cursor.execute('commit')
+
+def delete_old_records():
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()     
+    command = '''
+    DELETE
+    FROM data_sessions
+    WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -{} DAY)
+    '''.format(Settings.days)
+    try:
+        cursor.execute(command)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+    connect.close()  
 
 def get_accounts(cursor):
     command = '''
-    SELECT account_name
+    SELECT account_name, tv
     FROM abon_dsl
     WHERE account_name IS NOT NULL
     '''  
     cursor.execute(command)
     return cursor.fetchall()
+    
 
 def get_onyma_params(cursor):
     command = '''
@@ -85,6 +102,19 @@ def update_abon_onyma(cursor, bill, dmid, tmid, account_name):
     else:
         cursor.execute('commit')
         
+def update_abon_dsl(cursor, account_name):
+    command = '''
+    UPDATE abon_dsl
+    SET tv = "yes"
+    WHERE account_name = "{}"
+    '''.format(account_name)
+    try:
+        cursor.execute(command)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+        
 def insert_data_sessions(cursor, account_name, prev_day, count):
     command = '''
     INSERT INTO data_sessions
@@ -103,6 +133,7 @@ def run(arguments):
     count_processed = 0
     count_insert = 0
     count_update = 0
+    count_tv = 0
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     onyma = Onyma.get_onyma()
@@ -112,6 +143,7 @@ def run(arguments):
     prev_day = datetime.date.today() - datetime.timedelta(days=1)
     for account in account_list:
         account_name = account[0]
+        account_tv = account[1]
         if account_name in onyma_param_list:
             bill = onyma_param_list[account_name]['bill']
             dmid = onyma_param_list[account_name]['dmid']
@@ -130,10 +162,13 @@ def run(arguments):
                 insert_abon_onyma(cursor, bill, dmid, tmid, account_name)
                 count_insert += 1
         count = Onyma.count_sessions(onyma, bill,  dmid,  tmid,  prev_day)
-        if count == -1:
+        tv = Onyma.update_tv(onyma, bill, prev_day)
+        if (count == -1) or (tv == -1):
             onyma = Onyma.get_onyma()
             continue
-        elif count == 0:
+        if (tv is True) and (account_tv == 'no'):
+            update_abon_dsl(cursor, account_name)
+        if count == 0:
             onyma_param = Onyma.find_account_param(onyma, account_name)
             if onyma_param == -1:
                 onyma = Onyma.get_onyma()
@@ -155,7 +190,7 @@ def run(arguments):
         insert_data_sessions(cursor, account_name, prev_day, count)
     connect.close()
     del onyma
-    return (count_processed, count_insert, count_update)
+    return (count_processed, count_insert, count_update, count_tv)
 
 
 def main():
@@ -171,6 +206,7 @@ def main():
             count_processed = 0
             count_insert = 0
             count_update = 0
+            count_tv = 0
             connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
             cursor = connect.cursor()
             check_tables(cursor)
@@ -189,11 +225,14 @@ def main():
                 count_processed += count[0]
                 count_insert += count[1]
                 count_update += count[2]
+                count_tv += count[3]
 
             print('\nОбработано: {}'.format(count_processed))
             print('Добавлено: {}'.format(count_insert))
-            print('Обновлено: {}\n'.format(count_update))
+            print('Обновлено: {}'.format(count_update))
+            print('Обнаружено ТВ: {}\n'.format(count_tv))
             
+            delete_old_records()
             print('Завершение работы: {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             run_date = current_date
         else:

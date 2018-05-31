@@ -28,7 +28,7 @@ class DslamHuawei():
         # Распознавание версии ПО
         str_out = self.write_read_data('display version')
         self.version = re.search(r'\b(MA.+?)\b', str_out).group(1)
-        #self.set_adsl_line_profile()
+        self.set_adsl_line_profile()
     
     def __del__(self):
         self.tn.close()
@@ -59,9 +59,9 @@ class DslamHuawei():
         self.hostname = re.search('([\w-]+)$', self.tn.before.decode('utf-8')).group(1)
     
     def logging(self,  in_out, line):
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
-        with open('logs{}{} {}.txt'.format(os.sep, self.ip,  datetime.datetime.now().strftime('%d-%m-%y')), 'a') as log_file:
+        if not os.path.exists('dslam_logs'):
+            os.mkdir('dslam_logs')
+        with open('dslam_logs{}{} {}.txt'.format(os.sep, self.ip,  datetime.datetime.now().strftime('%d-%m-%y')), 'a') as log_file:
             log_file.write('{} {}\n{}\n**************************************\n'.format(in_out,  datetime.datetime.now().strftime('%H:%M:%S'),  line))
         
     def alive(self):
@@ -86,20 +86,22 @@ class DslamHuawei():
         result = ''
         while True:
             try:
-                self.tn.expect('.{}.*#'.format(self.hostname), timeout=60)
+                self.tn.expect('.{}.*#'.format(self.hostname), timeout=30)
             except Exception as ex:
                 print('{}: ошибка чтения. Команда - {}'.format(self.hostname, command_line))
                 print(str(ex).split('\n')[0])
                 return False
-            result += self.tn.before.decode('utf-8').replace('\r',  '')
+            result += re.sub(r'[^A-Za-z0-9\n\./: _-]|(.\x1b\[..)', '', self.tn.before.decode('utf-8'))
             if LOGGING:
                 self.logging('out',  result)
             if result.count('\n') == 1 and not short:
                 continue
             if self.check_out(command_line, result):
+                #if LOGGING:
+                    #self.logging('out',  result)                
                 return result
             else:
-                time.sleep(60)
+                time.sleep(15)
                 while True:
                     try:
                         self.tn.expect('#', timeout=1)
@@ -113,7 +115,7 @@ class DslamHuawei():
         for count in range(0, 5):
             self.write_data(command_line)
             result = self.read_data(command_line,  short)
-            if result != -1:
+            if (result != -1) and (result is not False):
                 return result
         return False
 
@@ -258,22 +260,39 @@ class DslamHuawei():
                 result.append((match.group(1), match.group(2)))
             return result
     
-    #def get_adsl_line_profile(self, profile_index):
-        #""" Получить описание профайла линии по его индексу """
-        #if profile_index not in self.adsl_line_profile:
-            #return 'The profile does not exist'
-        #command = 'display adsl line-profile'
-        #command_line = '{} {}'.format(command, profile_index)
-        #str_out = self.write_read_data(command_line)
-        #if str_out is False:
-            #return False
-        #result = ''
-        #for line in str_out.split('\n'):
-            #if len(line) < 1:
-                #continue
-            #if line[0] == ' ' and line[3] != '-':
-                #result += (line + '\n')
-        #return result
+    def get_adsl_line_profile(self, profile_index):
+        """ Получить описание профайла линии по его индексу """
+        if profile_index not in self.adsl_line_profile:
+            return 'The profile does not exist'
+        command = 'display adsl line-profile'
+        command_line = '{} {}'.format(command, profile_index)
+        str_out = self.write_read_data(command_line)
+        if str_out is False:
+            return False
+        result = ''
+        for line in str_out.split('\n'):
+            if len(line) < 1:
+                continue
+            if line[0] == ' ' and line[3] != '-':
+                result += (line + '\n')
+        return result
+    
+    def get_adsl_line_profile_board(self, board):
+        """ Получить список активированных портов с платы """
+        if board not in self.boards:
+            return []
+        regex = re.compile(r' +(\w*) +ADSL +Activat(ed|ing) +(\w*)')
+        command_line = 'display board 0/{}'.format(board)
+        str_out = self.write_read_data(command_line)
+        if str_out is False:
+            return False
+        result = []
+        for line in str_out.split('\n'):
+            try:
+                result.append(int(regex.search(line).group(3)))
+            except:
+                continue
+        return result       
 
     def get_time(self):
         """ Получить Дату - Время с DSLAM """
@@ -287,6 +306,8 @@ class DslamHuawei():
     
     def set_activate_port(self, board, port):
         """ Активировать порт """
+        if (board not in self.boards) or (port not in range(0, self.ports)):
+            return False        
         self.write_read_data('config',  short=True)
         self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
         self.write_read_data('activate {}'.format(port))
@@ -295,22 +316,33 @@ class DslamHuawei():
     
     def set_deactivate_port(self, board, port):
         """ Деактивировать порт """
+        if (board not in self.boards) or (port not in range(0, self.ports)):
+            return False         
         self.write_read_data('config',  short=True)
         self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
         self.write_read_data('deactivate {}'.format(port))
         self.write_read_data('quit',  short=True)
         self.write_read_data('quit',  short=True)
         
-    #def set_adsl_line_profile_port(self, board, port, profile_index):
-        #""" Изменить профайл на порту """
-        #if profile_index not in self.adsl_line_profile:
-            #profile_index = 1
-        #self.write_read_data('config',  short=True)
-        #self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
-        #self.write_read_data('deactivate {}'.format(port))
-        #self.write_read_data('activate {} profile-index {}'.format(port, profile_index))
-        #self.write_read_data('quit',  short=True)
-        #self.write_read_data('quit',  short=True)        
+    def set_adsl_line_profile_port(self, board, port, profile_index):
+        """ Изменить профайл на порту """
+        if (board not in self.boards) or (port not in range(0, self.ports)):
+            return False         
+        if profile_index not in self.adsl_line_profile:
+            return False  
+        self.write_read_data('config',  short=True)
+        self.write_read_data('interface adsl 0/{}'.format(board),  short=True)
+        self.write_read_data('deactivate {}'.format(port))
+        self.write_read_data('activate {} profile-index {}'.format(port, profile_index))
+        self.write_read_data('quit',  short=True)
+        self.write_read_data('quit',  short=True)
+        
+    def execute_command(self, command, short=False):
+        command_line = command.strip()
+        str_out = self.write_read_data(command, short)
+        if str_out is False:
+            return False
+        return str_out
 
 
 class DslamHuawei5600(DslamHuawei):
