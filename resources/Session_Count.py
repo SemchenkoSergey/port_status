@@ -57,7 +57,7 @@ def delete_old_records():
 
 def get_accounts(cursor):
     command = '''
-    SELECT account_name, tv
+    SELECT account_name, tv, hostname, board, port
     FROM abon_dsl
     WHERE account_name IS NOT NULL
     '''  
@@ -102,7 +102,7 @@ def update_abon_onyma(cursor, bill, dmid, tmid, account_name):
     else:
         cursor.execute('commit')
         
-def update_abon_dsl(cursor, account_name):
+def update_abon_dsl_tv(cursor, account_name):
     command = '''
     UPDATE abon_dsl
     SET tv = "yes"
@@ -114,6 +114,19 @@ def update_abon_dsl(cursor, account_name):
         pass
     else:
         cursor.execute('commit')
+
+def update_abon_dsl_hostname(cursor, account_name, data):
+    command = '''
+    UPDATE abon_dsl
+    SET hostname = "{}", board = {}, port = {}
+    WHERE account_name = "{}"
+    '''.format(data['hostname'], data['board'], data['port'], account_name)
+    try:
+        cursor.execute(command)
+    except:
+        pass
+    else:
+        cursor.execute('commit')    
         
 def insert_data_sessions(cursor, account_name, prev_day, count):
     command = '''
@@ -134,6 +147,7 @@ def run(arguments):
     count_insert = 0
     count_update = 0
     count_tv = 0
+    count_tech_data = 0
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     onyma = Onyma.get_onyma()
@@ -144,6 +158,10 @@ def run(arguments):
     for account in account_list:
         account_name = account[0]
         account_tv = account[1]
+        account_hostname = account[2]
+        account_board = account[3]
+        account_port = account[4]
+        
         if account_name in onyma_param_list:
             bill = onyma_param_list[account_name]['bill']
             dmid = onyma_param_list[account_name]['dmid']
@@ -161,13 +179,14 @@ def run(arguments):
                 bill, dmid, tmid = onyma_param
                 insert_abon_onyma(cursor, bill, dmid, tmid, account_name)
                 count_insert += 1
-        count = Onyma.count_sessions(onyma, bill,  dmid,  tmid,  prev_day)
+        data = Onyma.count_sessions(onyma, bill,  dmid,  tmid,  prev_day)
         tv = Onyma.update_tv(onyma, bill, prev_day)
-        if (count == -1) or (tv == -1):
+        if (data == -1) or (tv == -1):
             onyma = Onyma.get_onyma()
             continue
         if (tv is True) and (account_tv == 'no'):
-            update_abon_dsl(cursor, account_name)
+            update_abon_dsl_tv(cursor, account_name)
+        count = data['count']
         if count == 0:
             onyma_param = Onyma.find_account_param(onyma, account_name)
             if onyma_param == -1:
@@ -182,15 +201,20 @@ def run(arguments):
                 if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
                     update_abon_onyma(cursor, cur_bill, cur_dmid, cur_tmid, account_name)
                     count_update += 1
-                count = Onyma.count_sessions(onyma, cur_bill,  cur_dmid,  cur_tmid,  prev_day)
-                if count == -1:
+                data = Onyma.count_sessions(onyma, bill,  dmid,  tmid,  prev_day)               
+                if data == -1:
                     onyma = Onyma.get_onyma()
-                    continue                
+                    continue
+                count = data['count']
+        if data['hostname'] is not None:
+            if (data['hostname'] != account_hostname) or (data['board'] != account_board) or (data['port'] != account_port):
+                update_abon_dsl_hostname(cursor, account_name, data)
+                count_tech_data += 1
         count_processed += 1
         insert_data_sessions(cursor, account_name, prev_day, count)
     connect.close()
     del onyma
-    return (count_processed, count_insert, count_update, count_tv)
+    return (count_processed, count_insert, count_update, count_tv, count_tech_data)
 
 
 def main():
@@ -207,6 +231,7 @@ def main():
             count_insert = 0
             count_update = 0
             count_tv = 0
+            count_tech_data = 0
             connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
             cursor = connect.cursor()
             check_tables(cursor)
@@ -226,11 +251,13 @@ def main():
                 count_insert += count[1]
                 count_update += count[2]
                 count_tv += count[3]
+                count_tech_data += count[4]
 
             print('\nОбработано: {}'.format(count_processed))
             print('Добавлено: {}'.format(count_insert))
             print('Обновлено: {}'.format(count_update))
-            print('Обнаружено ТВ: {}\n'.format(count_tv))
+            print('Обнаружено ТВ: {}'.format(count_tv))
+            print('Обновлено тех. данных: {}\n'.format(count_tech_data))
             
             delete_old_records()
             print('Завершение работы: {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
