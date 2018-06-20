@@ -13,7 +13,7 @@ class DslamHuawei():
     @staticmethod
     def check_out(command, str_out):
         """ Проверка вывода команды """
-        bad_strings = ('Failure: System is busy', 'please wait',  'Unknown command')
+        bad_strings = ('Failure: System is busy', 'please wait',  'Unknown command', 'error')
         if command not in str_out:
             return False
         for string in bad_strings:
@@ -47,20 +47,20 @@ class DslamHuawei():
         self.tn.expect('(>|\) ----)')
         self.tn.sendline(' ')
         self.tn.expect('>')
-        commands = ['enable',
+        self.tn.sendline('enable')
+        self.tn.expect('#')
+        # Распознавание hostname
+        self.hostname = re.search('\n([\w-]+)$', self.tn.before.decode('utf-8')).group(1)        
+        commands = ['undo smart',
+                    'undo interactive',
                     'idle-timeout {}'.format(timeout),
                     'scroll 512',
-                    'undo smart',
-                    'undo interactive',
                     'undo alarm output all',
                     'config',
                     'undo info-center enable',
                     'quit']
         for command in commands:
-            self.tn.sendline(command)
-            self.tn.expect('#')
-        # Распознавание hostname
-        self.hostname = re.search('([\w-]+)$', self.tn.before.decode('utf-8')).group(1)
+            self.write_read_data(command,  short=True)
     
     def logging(self,  in_out, line):
         if not os.path.exists('dslam_logs'):
@@ -87,7 +87,7 @@ class DslamHuawei():
     def clean_out(self):
         while True:
             try:
-                self.tn.expect('#', timeout=2)
+                self.tn.expect('#', timeout=10)
             except:
                 break
 
@@ -99,8 +99,8 @@ class DslamHuawei():
             try:
                 self.tn.expect('.{}.*#'.format(self.hostname), timeout=30)
             except Exception as ex:
-                #print('{}: ошибка чтения. Команда - {}'.format(self.hostname, command_line))
-                #print(str(ex).split('\n')[0])
+                print('{}: ошибка чтения. Команда - {}'.format(self.hostname, command_line))
+                print(str(ex).split('\n')[0])
                 return False
             result += re.sub(r'[^A-Za-z0-9\n\./: _-]|(.\x1b\[..)', '', self.tn.before.decode('utf-8'))
             if LOGGING:
@@ -123,6 +123,7 @@ class DslamHuawei():
             if result is not False:
                 return result
             time.sleep(15)
+            self.write_data(' ')
             self.clean_out()
         print('{}: не удалось обработать команду {}'.format(self.hostname, command_line))
         return False
@@ -189,10 +190,9 @@ class DslamHuawei():
             return False
         result = []
         for line in str_out.split('\n'):
-            try:
-                result.append(int(regex.search(line).group(1)))
-            except:
-                continue
+            match = regex.search(line)
+            if match:
+                result.append(int(match.group(1)))
         return result       
     
     def get_line_operation_board(self, board):
@@ -294,12 +294,11 @@ class DslamHuawei():
         str_out = self.write_read_data(command_line)
         if str_out is False:
             return False
-        result = []
+        result = ['-' for x in range(0, self.ports)]
         for line in str_out.split('\n'):
-            try:
-                result.append(int(regex.search(line).group(3)))
-            except:
-                continue
+            match = regex.search(line)
+            if match:
+                result[int(match.group(1))] = int(match.group(3))
         return result       
 
     def get_time(self):
