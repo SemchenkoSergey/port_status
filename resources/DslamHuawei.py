@@ -13,7 +13,7 @@ class DslamHuawei():
     @staticmethod
     def check_out(command, str_out):
         """ Проверка вывода команды """
-        bad_strings = ('Failure: System is busy', 'please wait',  'Unknown command')
+        bad_strings = ('Failure: System is busy', 'please wait',  'Unknown command', 'error')
         if command not in str_out:
             return False
         for string in bad_strings:
@@ -27,7 +27,11 @@ class DslamHuawei():
 
         # Распознавание версии ПО
         str_out = self.write_read_data('display version')
-        self.version = re.search(r'\b(MA.+?)\b', str_out).group(1)
+        version = re.search(r'\b(MA.+?)\b', str_out)
+        if version:
+            self.version = version.group(1)
+        else:
+            self.version = '-'
         self.set_adsl_line_profile()
     
     def __del__(self):
@@ -43,20 +47,20 @@ class DslamHuawei():
         self.tn.expect('(>|\) ----)')
         self.tn.sendline(' ')
         self.tn.expect('>')
-        commands = ['enable',
+        self.tn.sendline('enable')
+        self.tn.expect('#')
+        # Распознавание hostname
+        self.hostname = re.search('\n([\w-]+)$', self.tn.before.decode('utf-8')).group(1)        
+        commands = ['undo smart',
+                    'undo interactive',
                     'idle-timeout {}'.format(timeout),
                     'scroll 512',
-                    'undo smart',
-                    'undo interactive',
                     'undo alarm output all',
                     'config',
                     'undo info-center enable',
                     'quit']
         for command in commands:
-            self.tn.sendline(command)
-            self.tn.expect('#')
-        # Распознавание hostname
-        self.hostname = re.search('([\w-]+)$', self.tn.before.decode('utf-8')).group(1)
+            self.write_read_data(command,  short=True)
     
     def logging(self,  in_out, line):
         if not os.path.exists('dslam_logs'):
@@ -79,6 +83,13 @@ class DslamHuawei():
             self.logging('in',  command_line)
         self.tn.sendline(command_line)
         return True
+    
+    def clean_out(self):
+        while True:
+            try:
+                self.tn.expect('#', timeout=10)
+            except:
+                break
 
     def read_data(self, command,  short):
         """ Чтение данных """
@@ -101,13 +112,7 @@ class DslamHuawei():
                     #self.logging('out',  result)                
                 return result
             else:
-                time.sleep(15)
-                while True:
-                    try:
-                        self.tn.expect('#', timeout=1)
-                    except:
-                        break
-                return -1                  
+                return False              
         
     def write_read_data(self, command,  short=False):
         """ Выполнение команды и получение результата """
@@ -115,8 +120,12 @@ class DslamHuawei():
         for count in range(0, 5):
             self.write_data(command_line)
             result = self.read_data(command_line,  short)
-            if (result != -1) and (result is not False):
+            if result is not False:
                 return result
+            time.sleep(15)
+            self.write_data(' ')
+            self.clean_out()
+        print('{}: не удалось обработать команду {}'.format(self.hostname, command_line))
         return False
 
     def set_boards(self, boards_list):
@@ -181,10 +190,9 @@ class DslamHuawei():
             return False
         result = []
         for line in str_out.split('\n'):
-            try:
-                result.append(int(regex.search(line).group(1)))
-            except:
-                continue
+            match = regex.search(line)
+            if match:
+                result.append(int(match.group(1)))
         return result       
     
     def get_line_operation_board(self, board):
@@ -286,12 +294,11 @@ class DslamHuawei():
         str_out = self.write_read_data(command_line)
         if str_out is False:
             return False
-        result = []
+        result = ['-' for x in range(0, self.ports)]
         for line in str_out.split('\n'):
-            try:
-                result.append(int(regex.search(line).group(3)))
-            except:
-                continue
+            match = regex.search(line)
+            if match:
+                result[int(match.group(1))] = int(match.group(3))
         return result       
 
     def get_time(self):

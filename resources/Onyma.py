@@ -19,23 +19,33 @@ def get_onyma():
     return session
 
 def count_sessions(onyma, bill,  dmid,  tmid,  date):
-    html = onyma.get("https://10.144.196.37/onyma/main/ddstat.htms?bill={}&dt={}&mon={}&year={}&service=201&dmid={}&tmid={}".format(bill,  date.day,  date.month, date.year,  dmid,  tmid))
-    if html.ok:
-        try:
-            count = re.search(r'<td class="foot">Все</td><td class="pgout" colspan="5">.+?<b>(\d+)</b>',  html.text.__repr__()).group(1)
-        except:
-            return -1
-    return int(count)
+    result = {}
+    re_hostname = r'(STV.+?) atm \d/(\d+)/\d/(\d+)'
+    try:
+        html = onyma.get("https://10.144.196.37/onyma/main/ddstat.htms?bill={}&dt={}&mon={}&year={}&service=201&dmid={}&tmid={}".format(bill,  date.day,  date.month, date.year,  dmid,  tmid))        
+        result['count'] = int(re.search(r'<td class="foot">Все</td><td class="pgout" colspan="5">.+?<b>(\d+)</b>',  html.text.__repr__()).group(1))
+        argus_data = re.search(re_hostname, html.text.__repr__())
+        if argus_data:
+            result['hostname'] = argus_data.group(1)
+            result['board'] = int(argus_data.group(2))
+            result['port'] = int(argus_data.group(3))
+        else:
+            result['hostname'] = None
+            result['board'] = None
+            result['port'] = None             
+    except:
+        return -1
+    return result
 
 def update_tv(onyma, bill, date):
     try:
         html = onyma.get("https://10.144.196.37/onyma/main/mstat.htms?bill={}&mon={}&year={}".format(bill, date.month, date.year))
-        if 'Предоставление услуг IPTV' in html.text:
-            return True
-        else:
-            return False
     except:
         return -1
+    if 'Предоставление услуг IPTV' in html.text:
+        return True
+    else:
+        return False
 
 def find_account_param(onyma, account_name):
     url_ip = 'https://10.144.196.37'
@@ -57,13 +67,16 @@ def find_account_param(onyma, account_name):
             url = td.find('a').get('href')
         except:
             continue
-        if 'service=201' in url and td.find('a').text == account_name:
+        if ('service=201' in url) and (td.find('a').text == account_name):
             urls.append(url_main + url)
     result_url = ''
     result_date = 1
     for url in urls:
-        html = onyma.get(url).text
-        current_date = int(BS(html, 'lxml').find('td', class_='td1').find('a').text.split('.')[0])
+        try:
+            html = onyma.get(url).text
+            current_date = int(BS(html, 'lxml').find('td', class_='td1').find('a').text.split('.')[0])
+        except:
+            continue            
         if current_date >= result_date:
             result_date = current_date
             result_url = url
