@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 
 ### Port_Status ###
 # Учетные данные DSLAM
