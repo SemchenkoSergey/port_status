@@ -14,7 +14,7 @@ def check_tables(cursor):
         CREATE TABLE IF NOT EXISTS data_sessions (
         account_name VARCHAR(20),
         date DATE,
-        count TINYINT UNSIGNED,
+        count SMALLINT UNSIGNED,
         CONSTRAINT pk_data_sessions PRIMARY KEY (account_name, date)    
         )'''
     try:
