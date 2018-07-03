@@ -5,7 +5,7 @@ import sys
 import requests
 from resources import Settings
 from bs4 import BeautifulSoup as BS
-
+#import Settings
 
 def get_onyma():
     session = requests.Session()
@@ -17,6 +17,7 @@ def get_onyma():
         print('https://10.144.196.37/onyma/login.htms не доступен. Проверьте соединение с сетью.')
         sys.exit()
     return session
+
 
 def count_sessions(onyma, bill,  dmid,  tmid,  date):
     result = {}
@@ -37,6 +38,7 @@ def count_sessions(onyma, bill,  dmid,  tmid,  date):
         return -1
     return result
 
+
 def update_tv(onyma, bill, date):
     try:
         html = onyma.get("https://10.144.196.37/onyma/main/mstat.htms?bill={}&mon={}&year={}".format(bill, date.month, date.year))
@@ -46,6 +48,7 @@ def update_tv(onyma, bill, date):
         return True
     else:
         return False
+
 
 def find_account_param(onyma, account_name):
     url_ip = 'https://10.144.196.37'
@@ -88,6 +91,7 @@ def find_account_param(onyma, account_name):
     else:
         return False
 
+
 def get_speed(tariff):
     re_speed_kb = re.compile(r'(\d+) ?[k|К]')
     re_speed_mb = re.compile(r'(\d+) ?Мбит')
@@ -101,6 +105,7 @@ def get_speed(tariff):
     else:
         return False
     return speed
+    
     
 def find_account_speed(onyma, account_name):
     url_ip = 'https://10.144.196.37'
@@ -128,3 +133,13 @@ def find_account_speed(onyma, account_name):
         return speed
     else:
         return False
+
+
+def find_argus_id(onyma, onyma_id):
+    try:
+        html = onyma.post('https://10.144.196.37/onyma/main/dogsearch_ok.htms', {'clsrv': onyma_id, 'search': 'Поиск'}, verify=False).text
+        url = BS(html, 'lxml').find('a', title='Учет оборудования').get('href')
+        result = re.search(r'&rec=(.+?)&', url).group(1)
+    except:
+        return -1
+    return result

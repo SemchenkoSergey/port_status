@@ -30,9 +30,9 @@ def main():
             Session_Count.main()
             sys.exit()
         elif number == '3':
-            from resources import Make_Abon_Dsl
+            from resources import Make_Table
             print()
-            Make_Abon_Dsl.main()
+            Make_Table.main()
             sys.exit()
         elif number == '4':
             from resources import Make_Abon_Onyma

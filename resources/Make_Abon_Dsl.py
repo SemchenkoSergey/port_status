@@ -7,7 +7,7 @@ import datetime
 import MySQLdb
 from resources import Settings
 
-onyma_argus = {}
+onyma_phone = {}
 
 err_file_sql = 'error-abon_dsl-sql.txt'
 err_file_argus = 'error-abon_dsl-argus.txt'
@@ -51,53 +51,14 @@ def create_abon_dsl ():
         cursor.execute('commit')
     connect.close()
 
-def get_area_code(area):
-    codes = (('БЛАГОДАРНЕНСКИЙ', 'Благодарный', '86549'),
-             ('БУДЕННОВСКИЙ', 'Буденновск', '86559'),
-             ('ГЕОРГИЕВСКИЙ', 'Георгиевск', '87951'),
-             ('СОВЕТСКИЙ', 'Зеленокумск', '86552'),
-             ('ИЗОБИЛЬНЕНСКИЙ', 'Изобильный', '86545'),
-             ('ИПАТОВСКИЙ', 'Ипатово', '86542'),
-             ('МИНЕРАЛОВОДСКИЙ', 'Минеральные Воды', '87922'),
-             ('ШПАКОВСКИЙ', 'Михайловск', '86553'),
-             ('НЕФТЕКУМСКИЙ', 'Нефтекумск', '86558'),
-             ('НОВОАЛЕКСАНДРОВСКИЙ', 'Новоалександровск', '86544'),
-             ('КИРОВСКИЙ', 'Новопавловск', '87938'),
-             ('ПЕТРОВСКИЙ', 'Светлоград', '86547'),
-             ('АЛЕКСАНДРОВСКИЙ', 'Александровское', '86557'),
-             ('АРЗГИРСКИЙ', 'Арзгир', '86560'),
-             ('ГРАЧЕВСКИЙ', 'Грачевка', '86540'),
-             ('АПАНАСЕНКОВСКИЙ', 'Дивное', '86555'),
-             ('ТРУНОВСКИЙ', 'Донское', '86546'),
-             ('КОЧУБЕЕВСКИЙ', 'Кочубеевское', '86550'),
-             ('КРАСНОГВАРДЕЙСКИЙ', 'Красногвардейское', '86541'),
-             ('АНДРОПОВСКИЙ', 'Курсавка', '86556'),
-             ('ЛЕВОКУМСКИЙ', 'Левокумское', '86543'),
-             ('ТУРКМЕНСКИЙ', 'Летняя Ставка', '86565'),
-             ('НОВОСЕЛИЦКИЙ', 'Новоселицкое', '86548'),
-             ('СТЕПНОВСКИЙ', 'Степное', '86563'),
-             ('ПРЕДГОРНЫЙ', 'Ессентукская', '87961'),
-             ('КУРСКИЙ', 'Курская', '87964'),
-             ('Ессентуки', 'Ессентуки', '87934'),
-             ('Железноводск', 'Железноводск', '87932'),
-             ('Кисловодск', 'Кисловодск', '87937'),
-             ('Лермонтов', 'Лермонтов', '87935'),
-             ('Невинномысск', 'Невинномысск', '86554'),
-             ('Пятигорск', 'Пятигорск', '8793'),
-             ('Ставрополь', 'Ставрополь', '8652'))
-    for code in codes:
-        if (code[0].lower() in area.lower()) or (code[1].lower() in area.lower()):
-            return code[2]
-    return False
-
 def argus_abon_dsl(file_list):
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor()        
+    #connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    #cursor = connect.cursor()        
     
     # Подготовка регулярных выражений
     re_phone = re.compile(r'\((\d+)\)(.+)') # Код, телефон
     re_address = re.compile(r'(.*),\s?(.*),\s?(.*),\s?(.*),\s?кв\.(.*)') # Район, нас. пункт, улица, дом, кв.
-    re_board = re.compile(r'.+0.(\d+).') # Board
+    re_board = re.compile(r'.+0.(\d+)') # Board
     re_onyma = re.compile(r'.+Onyma\s*(\d+)') # Onyma id
     
     # Обработка csv-файлов
@@ -109,6 +70,8 @@ def argus_abon_dsl(file_list):
             reader = csv.reader(f, delimiter=';')
             for row in reader:
                 if len(row) < 8:
+                    continue
+                if not re_phone.search(row[8]):
                     continue
                 cell_hostname = row[2].replace('=', '').replace('"', '')
                 cell_board = row[4].replace('=', '').replace('"', '')
@@ -131,21 +94,22 @@ def argus_abon_dsl(file_list):
                 onyma_id = re_onyma.search(cell_onyma).group(1)                             # onyma id
                 
                 # Вставка данных в таблицу
-                command = '''
-                INSERT INTO abon_dsl
-                (phone_number, area, locality, street, house_number, apartment_number, hostname, board, port)
-                VALUES
-                ({}, {}, {}, {}, {}, {}, {}, {}, {})
-                '''.format(phone_number, area, locality, street, house_number, apartment_number, hostname, board, port)
-                try:
-                    cursor.execute(command)
-                except Exception as ex:
-                    print(ex)
-                    continue
-                else:
-                    cursor.execute('commit')
-                onyma_argus[onyma_id] = phone_number
-    connect.close()
+                #command = '''
+                #INSERT INTO abon_dsl
+                #(phone_number, area, locality, street, house_number, apartment_number, hostname, board, port)
+                #VALUES
+                #({}, {}, {}, {}, {}, {}, {}, {}, {})
+                #'''.format(phone_number, area, locality, street, house_number, apartment_number, hostname, board, port)
+                #try:
+                    #cursor.execute(command)
+                #except Exception as ex:
+                    #print(ex)
+                    #continue
+                #else:
+                    #cursor.execute('commit')
+                print('{}, {}, {}, {}, {}, {}, {}, {}, {}'.format(phone_number, area, locality, street, house_number, apartment_number, hostname, board, port))
+                onyma_phone[onyma_id] = phone_number.replace('"', '')
+    #connect.close()
  
 def onyma_abon_dsl(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
@@ -188,16 +152,16 @@ def onyma_abon_dsl(file_list):
 
 
 def main():
-    print("Начало работы: {}\n".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    create_error_files()
-    create_abon_dsl()
+    #print("Начало работы: {}\n".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    #create_error_files()
+    #create_abon_dsl()
     
     # Обработка файлов в директории in/argus/
     file_list = ['in' + os.sep + 'argus' + os.sep + x for x in os.listdir('in' + os.sep + 'argus')]
     argus_abon_dsl(file_list)
     
     # Обработка файлов в директории in/onyma/
-    file_list = ['in' + os.sep + 'onyma' + os.sep + x for x in os.listdir('in' + os.sep + 'onyma')]
-    onyma_abon_dsl(file_list)
+    #file_list = ['in' + os.sep + 'onyma' + os.sep + x for x in os.listdir('in' + os.sep + 'onyma')]
+    #onyma_abon_dsl(file_list)
     
     print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))

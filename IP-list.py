@@ -6,7 +6,7 @@ def main():
     out = ''
     count = 0
     for host in Settings.hosts:
-        if count % 20 == 0 and count != 0:
+        if count % 19 == 0 and count != 0:
             print(out)
             out = ''
         out += host[0] + ';' 
