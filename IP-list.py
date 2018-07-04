@@ -4,15 +4,13 @@ from resources import Settings
 
 def main():
     out = ''
-    count = 0
     for host in Settings.hosts:
-        if count % 19 == 0 and count != 0:
-            print(out)
-            out = ''
-        out += host[0] + ';' 
-        count += 1
-    print(out)
-
+        if len(out + host[0]) < 239:
+            out += host[0] + ';'
+        else:
+            print('Строка для формирования отчета: {}'.format(out))
+            out = host[0] + ';'
+    print('Строка для формирования отчета: {}'.format(out))
 
 if __name__ == '__main__':
     main()
