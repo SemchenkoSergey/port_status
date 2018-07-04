@@ -6,6 +6,7 @@ import csv
 import datetime
 import MySQLdb
 from resources import Onyma
+from resources import SQL
 from resources import Settings
 from concurrent.futures import ThreadPoolExecutor
 
@@ -51,6 +52,7 @@ def get_area_code(area):
             return code[2]
     return False
 
+
 def create_abon_dsl ():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
@@ -80,6 +82,7 @@ def create_abon_dsl ():
         cursor.execute('commit')
     connect.close()
 
+
 def create_abon_onyma():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
@@ -100,29 +103,86 @@ def create_abon_onyma():
         cursor.execute('commit')
     connect.close()
 
-def update_abon_dsl_account(cursor, account_name, phone_number):
+
+def get_accounts():
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
     command = '''
-    UPDATE abon_dsl
-    SET account_name = "{}"
-    WHERE phone_number = {}
-    '''.format(account_name, phone_number)
-    try:
-        cursor.execute(command)
-    except Exception as ex:
-        print(ex)
-    else:
-        cursor.execute('commit')    
+    SELECT account_name
+    FROM abon_dsl
+    WHERE account_name IS NOT NULL
+    '''
+    cursor.execute(command)
+    result = cursor.fetchall()
+    connect.close()
+    return result 
+
+
+def run_define_param(account_list):
+    count_processed = 0
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    onyma = Onyma.get_onyma()
+    
+    for account in account_list:
+        account_name = account[0]
+        account_param = Onyma.find_account_param(onyma, account_name)
+        if account_param is False:
+            continue
+        elif account_param == -1:
+            onyma = Onyma.get_onyma()
+            continue
+        else:
+            bill, dmid, tmid = account_param
+        count_processed += 1
+        command = '''
+        INSERT INTO abon_onyma
+        VALUES ("{}", "{}", "{}", "{}")
+        '''.format(account_name, bill, dmid, tmid)
+        try:
+            cursor.execute(command)
+        except:
+            pass
+        else:
+            cursor.execute('commit')
+    connect.close()
+    del onyma
+    return count_processed
+
+
+def run_define_speed(account_list):
+    count_processed = 0
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    onyma = Onyma.get_onyma()
+    for account in account_list:
+        account_name = account[0]
+        speed = Onyma.find_account_speed(onyma, account_name)
+        if speed is not False:
+            options = {'cursor': cursor,
+                       'table_name': 'abon_dsl',
+                       'set_left': 'tariff',
+                       'set_right': speed,
+                       'where_left': 'account_name',
+                       'where_right': account_name}
+            SQL.update_table(**options)
+            count_processed += 1
+    connect.close()
+    del onyma
+    return count_processed
+
 
 def find_phone_account(accounts): 
     onyma = Onyma.get_onyma()
     result = []
     for account in accounts:
-        print('Поиск {} в Ониме'.format(account[0]))
+        #print('Поиск {} в Ониме'.format(account[0]))
         argus_id = Onyma.find_argus_id(onyma, account[1])
         if argus_id in argus_phone:
             result.append((account[0], argus_phone[argus_id]))
-            print('Учетное имя - {}, телефон - {}'.format(result[-1][0], result[-1][1]))
+            #print('Учетное имя - {}, телефон - {}'.format(result[-1][0], result[-1][1]))
     return result # [(account_name, phone_number), ...]
+
 
 def argus_files(file_list):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
@@ -170,23 +230,17 @@ def argus_files(file_list):
                 except:
                     onyma_equ = ''
                     
-                
                 # Вставка данных в таблицу
-                command = '''
-                INSERT INTO abon_dsl
-                (phone_number, area, locality, street, house_number, apartment_number, hostname, board, port)
-                VALUES
-                ({}, {}, {}, {}, {}, {}, {}, {}, {})
-                '''.format(phone_number, area, locality, street, house_number, apartment_number, hostname, board, port)
+                values = [phone_number, area, locality, street, house_number, apartment_number, hostname, board, port]
+                options = {'cursor': cursor,
+                           'table_name': 'abon_dsl',
+                           'field': 'phone_number, area, locality, street, house_number, apartment_number, hostname, board, port',
+                           'values': values}
                 try:
-                    cursor.execute(command)
-                except Exception as ex:
-                    print(ex)
+                    SQL.insert_table(**options)
+                except:
                     continue
-                else:
-                    cursor.execute('commit')
-                #print('{}, {}, {}, {}, {}, {}, {}, {}, {}'.format(phone_number, area, locality, street, house_number, apartment_number, hostname, board, port))
-                argus_phone[onyma_equ] = phone_number.replace('"', '')
+                argus_phone[onyma_equ] = phone_number
     connect.close()
  
 def onyma_file(file_list):
@@ -212,100 +266,31 @@ def onyma_file(file_list):
                         continue
                     
                     # Определение учетного имени
-                    account_name = row[21]
+                    account_name = '"{}"'.format(row[21])
                     onyma_id = row[19]
                     if phone_number not in phones:
                         phones[phone_number] = []
                     phones[phone_number].append((account_name, onyma_id))
-                    
+                  
             for phone in phones:
                 if len(phones[phone]) == 1:
-                    update_abon_dsl_account(cursor, phones[phone][0], phone_number)
+                    options = {'cursor': cursor,
+                               'table_name': 'abon_dsl',
+                               'set_left': 'account_name',
+                               'set_right': phones[phone][0][0],
+                               'where_left': 'phone_number',
+                               'where_right': phone}
+                    SQL.update_table(**options)
                 else:
                     find_phones = find_phone_account(phones[phone])
                     for find_phone in find_phones:
-                        update_abon_dsl_account(cursor, find_phone[0], find_phone[1])
-    connect.close()
-                    
-                    
-                    
-                    
-
-def run(arguments):
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor()         
-    onyma = Onyma.get_onyma()
-    
-    for current_id in arguments:
-        argus_id = Onyma.find_argus_id(onyma, current_id)
-        if argus_id in argus_phone:
-            account_name = onyma_account[current_id]
-            
-            # Установка номера карты
-            command = '''
-            UPDATE abon_dsl
-            SET account_name = "{}"
-            WHERE phone_number = "{}"
-            '''.format(account_name, argus_phone[argus_id])
-            try:
-                cursor.execute(command)
-            except:
-                pass
-            else:
-                cursor.execute('commit')
-                
-            # Определение тарифного плана
-            speed = Onyma.find_account_speed(onyma, account_name)
-            if (speed is not False) and (speed != -1):
-                command = '''
-                UPDATE abon_dsl
-                SET tariff = {}
-                WHERE account_name = "{}"
-                '''.format(speed, account_name)
-                try:
-                    cursor.execute(command)
-                except:
-                    pass
-                else:
-                    cursor.execute('commit')
-            else:
-                onyma = Onyma.get_onyma()
-            
-            # Определение bill, dmid, tmid
-            account_param = Onyma.find_account_param(onyma, account_name)
-            if (account_param is not False) and (account_param != -1):
-                bill, dmid, tmid = account_param
-                command = '''
-                INSERT INTO abon_onyma
-                VALUES ("{}", "{}", "{}", "{}")
-                '''.format(account_name, bill, dmid, tmid)
-                try:
-                    cursor.execute(command)
-                except:
-                    pass
-                else:
-                    cursor.execute('commit')                
-            else:
-                onyma = Onyma.get_onyma()
-                continue
-                
-            # Определение IPTV
-            tv = Onyma.update_tv(onyma, bill, datetime.date.today())
-            if tv == -1:
-                onyma = Onyma.get_onyma()
-            if tv:
-                command = '''
-                UPDATE abon_dsl
-                SET tv = "yes"
-                WHERE account_name = "{}"
-                '''.format(account_name)
-                try:
-                    cursor.execute(command)
-                except:
-                    pass
-                else:
-                    cursor.execute('commit')                
-            
+                        options = {'cursor': cursor,
+                                   'table_name': 'abon_dsl',
+                                   'set_left': 'account_name',
+                                   'set_right': find_phone[0],
+                                   'where_left': 'phone_number',
+                                   'where_right': find_phone[1]}                        
+                        SQL.update_table(**options)
     connect.close()
 
     
@@ -322,9 +307,26 @@ def main():
     file_list = ['in' + os.sep + 'onyma' + os.sep + x for x in os.listdir('in' + os.sep + 'onyma')]
     onyma_file(file_list)
     
-    #print('Получение данных из Онимы...')
-    #arguments = [onyma_id[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
-    #with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
-        #result = executor.map(run, arguments)
+    # Заполнение полей bill, dmid, tmid таблицы abon_onyma
+    account_list = get_accounts()
+    if len(account_list) == 0:
+        print('\n!!! Не сформирована таблица abon_dsl !!!\n')
+        return
+    arguments = [account_list[x::Settings.threads_count]  for x in range(0,  Settings.threads_count)]
+    print('\nПолучение данных из Онимы для таблицы abon_onyma...')
+    with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
+        result = executor.map(run_define_param, arguments)
+    count = 0
+    for i in result:
+        count += i
+    print('Обработано: {}'.format(count))
     
+    # Заполнение тарифов в abon_dsl
+    print('\nПолучение данных из Онимы для заполнения тарифов...')
+    with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
+        result = executor.map(run_define_speed, arguments)
+    count = 0
+    for i in result:
+        count += i
+    print('Обработано: {}'.format(count))    
     print("\nЗавершение работы: {}".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))

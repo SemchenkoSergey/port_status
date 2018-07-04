@@ -12,12 +12,11 @@ def main():
         print('-')
         print('1. Снятие показаний с портов DSLAM')
         print('2. Получение количества абонентских сессий из Онимы')
-        print('3. Обработка отчетов из Аргуса и Онимы')
-        print('4. Получение данных для работы с Онимой и уточнение тарифов')
+        print('3. Обработка отчетов, формирование таблиц из Онимы')
         print()
-        print('5. Выход из программы')
+        print('4. Выход из программы')
         number = input('-\n> ')
-        if number == '5':
+        if number == '4':
             sys.exit()
         elif number == '1':
             from resources import Port_Status
@@ -33,11 +32,6 @@ def main():
             from resources import Make_Table
             print()
             Make_Table.main()
-            sys.exit()
-        elif number == '4':
-            from resources import Make_Abon_Onyma
-            print()
-            Make_Abon_Onyma.main()
             sys.exit()
         else:
             print('\n!!! Нужно ввести число от 1 до 5 !!!\n')    
