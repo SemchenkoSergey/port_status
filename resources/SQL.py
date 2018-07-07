@@ -5,7 +5,7 @@
 import MySQLdb
 from resources import Settings
 
-def create_abon_dsl ():
+def create_abon_dsl():
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     try:
@@ -56,59 +56,45 @@ def create_abon_onyma():
     connect.close()
 
 
-def get_accounts():
+def get_table_data(table_name, table_field, table_where):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
     command = '''
-    SELECT account_name
-    FROM abon_dsl
-    WHERE account_name IS NOT NULL
-    '''
+    SELECT {}
+    FROM {}
+    WHERE {}
+    '''.format(table_field, table_name, table_where)
     cursor.execute(command)
     result = cursor.fetchall()
     connect.close()
     return result
-
-
-def update_abon_dsl_account(cursor, account_name, phone_number):
-    command = '''
-    UPDATE abon_dsl
-    SET account_name = {}
-    WHERE phone_number = {}
-    '''.format(account_name, phone_number)
-    try:
-        cursor.execute(command)
-    except Exception as ex:
-        print(ex)
-    else:
-        cursor.execute('commit')
         
 
-def insert_table(cursor, table_name, field, values):
-    str_values = ''
-    for value in values:
-        str_values += value + ','
-    str_values = str_values[:-1]
+def insert_table(cursor, table_name, str_field, str_values):
+    #str_values = ''
+    #for value in str_values:
+        #str_values += str(value) + ','
+    #str_values = str_values[:-1]
     command = '''
     INSERT INTO {}
     ({})
     VALUES
     ({})
-    '''.format(table_name, field, str_values)
+    '''.format(table_name, str_field, str_values)
     try:
         cursor.execute(command)
     except Exception as ex:
         print(ex)
     else:
         cursor.execute('commit')
-
         
-def update_table(cursor, table_name, set_left, set_right, where_left, where_right):
+
+def update_table(cursor, table_name, str_set, str_where):
     command ='''
     UPDATE {}
-    SET {} = {}
-    WHERE {} = {}
-    '''.format(table_name, set_left, set_right, where_left, where_right)
+    SET {}
+    WHERE {}
+    '''.format(table_name, str_set, str_where)
     try:
         cursor.execute(command)
     except Exception as ex:

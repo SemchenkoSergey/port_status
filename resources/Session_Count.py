@@ -5,6 +5,7 @@ import time
 import MySQLdb
 import datetime
 from resources import Onyma
+from resources import SQL
 from resources import Settings
 from concurrent.futures import ThreadPoolExecutor
 
@@ -128,19 +129,6 @@ def update_abon_dsl_hostname(cursor, account_name, data):
     else:
         cursor.execute('commit')    
         
-def insert_data_sessions(cursor, account_name, prev_day, count):
-    command = '''
-    INSERT INTO data_sessions
-    (account_name, date, count)
-    VALUES
-    ("{}", "{}", {})
-    '''.format(account_name, prev_day.strftime('%Y-%m-%d'), count)
-    try:
-        cursor.execute(command)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
         
 def run(arguments):
     count_processed = 0
@@ -173,7 +161,12 @@ def run(arguments):
                 continue
             elif onyma_param is False:
                 count_processed += 1
-                insert_data_sessions(cursor, account_name, prev_day, 0)
+                values = ['"{}"'.format(account_name), '"{}"'.format(prev_day.strftime('%Y-%m-%d')), 0]
+                options = {'cursor': cursor,
+                           'table_name': 'data_sessions',
+                           'field': 'account_name, date, count',
+                           'values': values}
+                SQL.insert_table(**options)
                 continue
             else:            
                 bill, dmid, tmid = onyma_param
@@ -194,7 +187,12 @@ def run(arguments):
                 continue
             elif onyma_param is False:
                 count_processed += 1
-                insert_data_sessions(cursor, account_name, prev_day, 0)
+                values = ['"{}"'.format(account_name), '"{}"'.format(prev_day.strftime('%Y-%m-%d')), 0]
+                options = {'cursor': cursor,
+                           'table_name': 'data_sessions',
+                           'field': 'account_name, date, count',
+                           'values': values}
+                SQL.insert_table(**options)                
                 continue            
             else:
                 cur_bill, cur_dmid, cur_tmid = onyma_param
@@ -208,9 +206,19 @@ def run(arguments):
                 count = data['count']
         if data['hostname'] is not None:
             if (data['hostname'] != account_hostname) or (data['board'] != account_board) or (data['port'] != account_port):
+                options = {'cursor': cursor,
+                           'table_name': 'abon_dsl',
+                           'table_set': 'hostname = "{}", board = {}, port = {}'.format(data['hostname'], data['board'], data['port']),
+                           'table_where': 'account_name = "{}"'.format(account_name)}
                 update_abon_dsl_hostname(cursor, account_name, data)
                 count_tech_data += 1
         count_processed += 1
+        values = ['"{}"'.format(account_name), '"{}"'.format(prev_day.strftime('%Y-%m-%d')), count]
+        options = {'cursor': cursor,
+                   'table_name': 'data_sessions',
+                   'field': 'account_name, date, count',
+                   'values': values}
+        SQL.insert_table(**options)        
         insert_data_sessions(cursor, account_name, prev_day, count)
     connect.close()
     del onyma
@@ -219,9 +227,9 @@ def run(arguments):
 
 def main():
     # Начало
-    run_date = datetime.datetime.now().date()
-    print('Проверка сессий начнется завтра после 5 часов утра...\n')
-    #run_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
+    #run_date = datetime.datetime.now().date()
+    #print('Проверка сессий начнется завтра после 5 часов утра...\n')
+    run_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
     
     while True:
         current_date = datetime.datetime.now().date()

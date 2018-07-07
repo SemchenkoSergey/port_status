@@ -53,71 +53,6 @@ def get_area_code(area):
     return False
 
 
-def create_abon_dsl ():
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor()
-    try:
-        cursor.execute('DROP TABLE IF EXISTS abon_dsl')
-        table = '''
-        CREATE TABLE abon_dsl (
-        phone_number CHAR(10) NOT NULL,
-        area VARCHAR(30),
-        locality VARCHAR(30),
-        street VARCHAR(30),
-        house_number VARCHAR(10),
-        apartment_number VARCHAR(10),
-        hostname VARCHAR(50),
-        board TINYINT UNSIGNED,
-        port TINYINT UNSIGNED,
-        tariff SMALLINT UNSIGNED,
-        account_name VARCHAR(20),
-        tv ENUM('yes', 'no') DEFAULT 'no',
-        timestamp TIMESTAMP,
-        CONSTRAINT pk_abon_dsl PRIMARY KEY (phone_number)    
-        )'''
-        cursor.execute(table)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-    connect.close()
-
-
-def create_abon_onyma():
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor()
-    try:
-        cursor.execute('DROP TABLE IF EXISTS abon_onyma')
-        table = '''
-        CREATE TABLE abon_onyma (
-        account_name VARCHAR(20) NOT NULL,
-        bill VARCHAR(15) NOT NULL,
-        dmid VARCHAR(15) NOT NULL,
-        tmid VARCHAR(15) NOT NULL,
-        CONSTRAINT pk_abon_onyma PRIMARY KEY (account_name)    
-        )'''
-        cursor.execute(table)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-    connect.close()
-
-
-def get_accounts():
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor()
-    command = '''
-    SELECT account_name
-    FROM abon_dsl
-    WHERE account_name IS NOT NULL
-    '''
-    cursor.execute(command)
-    result = cursor.fetchall()
-    connect.close()
-    return result 
-
-
 def run_define_param(account_list):
     count_processed = 0
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
@@ -135,16 +70,12 @@ def run_define_param(account_list):
         else:
             bill, dmid, tmid = account_param
         count_processed += 1
-        command = '''
-        INSERT INTO abon_onyma
-        VALUES ("{}", "{}", "{}", "{}")
-        '''.format(account_name, bill, dmid, tmid)
-        try:
-            cursor.execute(command)
-        except:
-            pass
-        else:
-            cursor.execute('commit')
+        values = ['"{}"'.format(account_name), '"{}"'.format(bill), '"{}"'.format(dmid), '"{}"'.format(tmid)]
+        options = {'cursor': cursor,
+                   'table_name': 'abon_onyma',
+                   'field': 'account_name, bill, dmid, tmid',
+                   'values': values}
+        SQL.insert_table(**options)
     connect.close()
     del onyma
     return count_processed
@@ -164,7 +95,7 @@ def run_define_speed(account_list):
                        'set_left': 'tariff',
                        'set_right': speed,
                        'where_left': 'account_name',
-                       'where_right': account_name}
+                       'where_right': '"{}"'.format(account_name)}
             SQL.update_table(**options)
             count_processed += 1
     connect.close()
@@ -296,8 +227,8 @@ def onyma_file(file_list):
     
 def main():
     print("Начало работы: {}\n".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    create_abon_dsl()
-    create_abon_onyma()
+    SQL.create_abon_dsl()
+    SQL.create_abon_onyma()
     
     # Обработка файлов в директории in/argus/
     file_list = ['in' + os.sep + 'argus' + os.sep + x for x in os.listdir('in' + os.sep + 'argus')]
@@ -308,7 +239,10 @@ def main():
     onyma_file(file_list)
     
     # Заполнение полей bill, dmid, tmid таблицы abon_onyma
-    account_list = get_accounts()
+    options = {'table_name': 'abon_dsl',
+               'field': 'account_name',
+               'where': 'account_name IS NOT NULL'}
+    account_list = SQL.get_table_data(**options)
     if len(account_list) == 0:
         print('\n!!! Не сформирована таблица abon_dsl !!!\n')
         return

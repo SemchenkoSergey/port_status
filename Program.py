@@ -34,7 +34,7 @@ def main():
             Make_Table.main()
             sys.exit()
         else:
-            print('\n!!! Нужно ввести число от 1 до 5 !!!\n')    
+            print('\n!!! Нужно ввести число от 1 до 4 !!!\n')    
 
 
 if __name__ == '__main__':
