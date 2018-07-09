@@ -70,11 +70,10 @@ def run_define_param(account_list):
         else:
             bill, dmid, tmid = account_param
         count_processed += 1
-        values = ['"{}"'.format(account_name), '"{}"'.format(bill), '"{}"'.format(dmid), '"{}"'.format(tmid)]
         options = {'cursor': cursor,
                    'table_name': 'abon_onyma',
-                   'field': 'account_name, bill, dmid, tmid',
-                   'values': values}
+                   'str1': 'account_name, bill, dmid, tmid',
+                   'str2': '"{}", "{}", "{}", "{}"'.format(account_name, bill, dmid, tmid)}        
         SQL.insert_table(**options)
     connect.close()
     del onyma
@@ -92,10 +91,8 @@ def run_define_speed(account_list):
         if speed is not False:
             options = {'cursor': cursor,
                        'table_name': 'abon_dsl',
-                       'set_left': 'tariff',
-                       'set_right': speed,
-                       'where_left': 'account_name',
-                       'where_right': '"{}"'.format(account_name)}
+                       'str1': 'tariff = {}'.format(speed),
+                       'str2': 'account_name = "{}"'.format(account_name)}
             SQL.update_table(**options)
             count_processed += 1
     connect.close()
@@ -162,11 +159,10 @@ def argus_files(file_list):
                     onyma_equ = ''
                     
                 # Вставка данных в таблицу
-                values = [phone_number, area, locality, street, house_number, apartment_number, hostname, board, port]
                 options = {'cursor': cursor,
                            'table_name': 'abon_dsl',
-                           'field': 'phone_number, area, locality, street, house_number, apartment_number, hostname, board, port',
-                           'values': values}
+                           'str1': 'phone_number, area, locality, street, house_number, apartment_number, hostname, board, port',
+                           'str2': '{}, {}, {}, {}, {}, {}, {}, {}, {}'.format(phone_number, area, locality, street, house_number, apartment_number, hostname, board, port)}
                 try:
                     SQL.insert_table(**options)
                 except:
@@ -207,28 +203,24 @@ def onyma_file(file_list):
                 if len(phones[phone]) == 1:
                     options = {'cursor': cursor,
                                'table_name': 'abon_dsl',
-                               'set_left': 'account_name',
-                               'set_right': phones[phone][0][0],
-                               'where_left': 'phone_number',
-                               'where_right': phone}
+                               'str1': 'account_name = {}'.format(phones[phone][0][0]),
+                               'str2': 'phone_number = {}'.format(phone)}                    
                     SQL.update_table(**options)
                 else:
                     find_phones = find_phone_account(phones[phone])
                     for find_phone in find_phones:
                         options = {'cursor': cursor,
                                    'table_name': 'abon_dsl',
-                                   'set_left': 'account_name',
-                                   'set_right': find_phone[0],
-                                   'where_left': 'phone_number',
-                                   'where_right': find_phone[1]}                        
+                                   'str1': 'account_name = {}'.format(find_phone[0]),
+                                   'str2': 'phone_number = {}'.format(find_phone[1])}
                         SQL.update_table(**options)
     connect.close()
 
     
 def main():
     print("Начало работы: {}\n".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    SQL.create_abon_dsl()
-    SQL.create_abon_onyma()
+    SQL.create_abon_dsl(drop=True)
+    SQL.create_abon_onyma(drop=True)
     
     # Обработка файлов в директории in/argus/
     file_list = ['in' + os.sep + 'argus' + os.sep + x for x in os.listdir('in' + os.sep + 'argus')]
@@ -240,8 +232,8 @@ def main():
     
     # Заполнение полей bill, dmid, tmid таблицы abon_onyma
     options = {'table_name': 'abon_dsl',
-               'field': 'account_name',
-               'where': 'account_name IS NOT NULL'}
+               'str1': 'account_name',
+               'str2': 'account_name IS NOT NULL'}
     account_list = SQL.get_table_data(**options)
     if len(account_list) == 0:
         print('\n!!! Не сформирована таблица abon_dsl !!!\n')

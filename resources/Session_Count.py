@@ -10,124 +10,14 @@ from resources import Settings
 from concurrent.futures import ThreadPoolExecutor
 
 
-def check_tables(cursor):
-    table = '''
-        CREATE TABLE IF NOT EXISTS data_sessions (
-        account_name VARCHAR(20),
-        date DATE,
-        count SMALLINT UNSIGNED,
-        CONSTRAINT pk_data_sessions PRIMARY KEY (account_name, date)    
-        )'''
-    try:
-        cursor.execute(table)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-
-    table = '''
-        CREATE TABLE IF NOT EXISTS abon_onyma (
-        account_name VARCHAR(20) NOT NULL,
-        bill VARCHAR(15) NOT NULL,
-        dmid VARCHAR(15) NOT NULL,
-        tmid VARCHAR(15) NOT NULL,
-        CONSTRAINT pk_abon_onyma PRIMARY KEY (account_name)    
-        )'''
-    try:
-        cursor.execute(table)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-
-def delete_old_records():
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor()     
-    command = '''
-    DELETE
-    FROM data_sessions
-    WHERE date < DATE_ADD(CURRENT_DATE(), INTERVAL -{} DAY)
-    '''.format(Settings.days)
-    try:
-        cursor.execute(command)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-    connect.close()  
-
-def get_accounts(cursor):
-    command = '''
-    SELECT account_name, tv, hostname, board, port
-    FROM abon_dsl
-    WHERE account_name IS NOT NULL
-    '''  
-    cursor.execute(command)
-    return cursor.fetchall()
-    
-
-def get_onyma_params(cursor):
-    command = '''
-    SELECT account_name, bill, dmid, tmid
-    FROM abon_onyma
-    '''  
-    cursor.execute(command)
-    onyma_param = cursor.fetchall()
+def get_onyma_params():
+    options = {'table_name': 'abon_onyma',
+               'str1': 'account_name, bill, dmid, tmid'}    
+    onyma_param = SQL.get_all_table_data(**options)
     result = {}
     for param in onyma_param:
         result[param[0]] = {'bill' : param[1], 'dmid' : param[2], 'tmid' : param[3]}
     return result    
-
-def insert_abon_onyma(cursor, bill, dmid, tmid, account_name): 
-    command = '''
-    INSERT INTO abon_onyma
-    VALUES ("{}", "{}", "{}", "{}")
-    '''.format(account_name, bill, dmid, tmid)
-    try:
-        cursor.execute(command)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-        
-def update_abon_onyma(cursor, bill, dmid, tmid, account_name): 
-    command = '''
-    UPDATE abon_onyma
-    SET bill = "{}", dmid = "{}", tmid = "{}"
-    WHERE account_name = "{}"
-    '''.format(bill, dmid, tmid, account_name)
-    try:
-        cursor.execute(command)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-        
-def update_abon_dsl_tv(cursor, account_name):
-    command = '''
-    UPDATE abon_dsl
-    SET tv = "yes"
-    WHERE account_name = "{}"
-    '''.format(account_name)
-    try:
-        cursor.execute(command)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-
-def update_abon_dsl_hostname(cursor, account_name, data):
-    command = '''
-    UPDATE abon_dsl
-    SET hostname = "{}", board = {}, port = {}
-    WHERE account_name = "{}"
-    '''.format(data['hostname'], data['board'], data['port'], account_name)
-    try:
-        cursor.execute(command)
-    except:
-        pass
-    else:
-        cursor.execute('commit')    
         
         
 def run(arguments):
@@ -161,16 +51,19 @@ def run(arguments):
                 continue
             elif onyma_param is False:
                 count_processed += 1
-                values = ['"{}"'.format(account_name), '"{}"'.format(prev_day.strftime('%Y-%m-%d')), 0]
                 options = {'cursor': cursor,
                            'table_name': 'data_sessions',
-                           'field': 'account_name, date, count',
-                           'values': values}
+                           'str1': 'account_name, date, count',
+                           'str2': '"{}", "{}", {}'.format(account_name, prev_day.strftime('%Y-%m-%d'), 0)}
                 SQL.insert_table(**options)
                 continue
             else:            
                 bill, dmid, tmid = onyma_param
-                insert_abon_onyma(cursor, bill, dmid, tmid, account_name)
+                options = {'cursor': cursor,
+                           'table_name': 'abon_onyma',
+                           'str1': 'account_name, bill, dmid, tmid'.format(),
+                           'str2': '"{}", "{}", "{}", "{}"'.format(account_name, bill, dmid, tmid)}
+                SQL.insert_table(**options)
                 count_insert += 1
         data = Onyma.count_sessions(onyma, bill,  dmid,  tmid,  prev_day)
         tv = Onyma.update_tv(onyma, bill, prev_day)
@@ -178,7 +71,11 @@ def run(arguments):
             onyma = Onyma.get_onyma()
             continue
         if (tv is True) and (account_tv == 'no'):
-            update_abon_dsl_tv(cursor, account_name)
+            options = {'cursor': cursor,
+                       'table_name': 'abon_dsl',
+                       'str1': 'tv = "yes"',
+                       'str2': 'account_name = "{}"'.format(account_name)}
+            SQL.update_table(**options)            
         count = data['count']
         if count == 0:
             onyma_param = Onyma.find_account_param(onyma, account_name)
@@ -187,17 +84,20 @@ def run(arguments):
                 continue
             elif onyma_param is False:
                 count_processed += 1
-                values = ['"{}"'.format(account_name), '"{}"'.format(prev_day.strftime('%Y-%m-%d')), 0]
                 options = {'cursor': cursor,
                            'table_name': 'data_sessions',
-                           'field': 'account_name, date, count',
-                           'values': values}
+                           'str1': 'account_name, date, count',
+                           'str2': '"{}", "{}", {}'.format(account_name, prev_day.strftime('%Y-%m-%d'), 0)}                
                 SQL.insert_table(**options)                
                 continue            
             else:
                 cur_bill, cur_dmid, cur_tmid = onyma_param
                 if cur_bill != bill or cur_tmid != tmid or cur_dmid != dmid:
-                    update_abon_onyma(cursor, cur_bill, cur_dmid, cur_tmid, account_name)
+                    options = {'cursor': cursor,
+                               'table_name': 'abon_onyma',
+                               'str1': 'bill = "{}", dmid = "{}", tmid = "{}"'.format(cur_bill, cur_dmid, cur_tmid),
+                               'str2': 'account_name = "{}"'.format(account_name)}
+                    SQL.update_table(**options)                    
                     count_update += 1
                 data = Onyma.count_sessions(onyma, bill,  dmid,  tmid,  prev_day)               
                 if data == -1:
@@ -208,18 +108,17 @@ def run(arguments):
             if (data['hostname'] != account_hostname) or (data['board'] != account_board) or (data['port'] != account_port):
                 options = {'cursor': cursor,
                            'table_name': 'abon_dsl',
-                           'table_set': 'hostname = "{}", board = {}, port = {}'.format(data['hostname'], data['board'], data['port']),
-                           'table_where': 'account_name = "{}"'.format(account_name)}
-                update_abon_dsl_hostname(cursor, account_name, data)
+                           'str1': 'hostname = "{}", board = {}, port = {}'.format(data['hostname'], data['board'], data['port']),
+                           'str2': 'account_name = "{}"'.format(account_name)}
+                SQL.update_table(**options)
                 count_tech_data += 1
+                print(account_name, data['hostname'], data['board'], data['port'])
         count_processed += 1
-        values = ['"{}"'.format(account_name), '"{}"'.format(prev_day.strftime('%Y-%m-%d')), count]
         options = {'cursor': cursor,
                    'table_name': 'data_sessions',
-                   'field': 'account_name, date, count',
-                   'values': values}
+                   'str1': 'account_name, date, count',
+                   'str2': '"{}", "{}", {}'.format(account_name, prev_day.strftime('%Y-%m-%d'), count)}
         SQL.insert_table(**options)        
-        insert_data_sessions(cursor, account_name, prev_day, count)
     connect.close()
     del onyma
     return (count_processed, count_insert, count_update, count_tv, count_tech_data)
@@ -240,15 +139,16 @@ def main():
             count_update = 0
             count_tv = 0
             count_tech_data = 0
-            connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-            cursor = connect.cursor()
-            check_tables(cursor)
-            account_list = get_accounts(cursor)
+            SQL.create_data_sessions()
+            SQL.create_abon_onyma()
+            options = {'table_name': 'abon_dsl',
+                       'str1': 'account_name, tv, hostname, board, port',
+                       'str2': 'account_name IS NOT NULL'}
+            account_list = SQL.get_table_data(**options)            
             if len(account_list) == 0:
                 print('\n!!! Необходимо сформировать таблицу abon_dsl !!!\n')
-                return
-            onyma_param_list = get_onyma_params(cursor)
-            connect.close()
+                return    
+            onyma_param_list = get_onyma_params()
             arguments = [(account_list[x::Settings.threads_count], onyma_param_list)  for x in range(0,  Settings.threads_count)]
       
             with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
@@ -263,11 +163,13 @@ def main():
 
             print('\nОбработано: {}'.format(count_processed))
             print('Добавлено: {}'.format(count_insert))
-            print('Обновлено: {}'.format(count_update))
+            print('Обновлено данных Онимы: {}'.format(count_update))
             print('Обнаружено ТВ: {}'.format(count_tv))
             print('Обновлено тех. данных: {}\n'.format(count_tech_data))
             
-            delete_old_records()
+            options = {'table_name': 'data_sessions',
+                       'str1': 'date < DATE_ADD(CURRENT_DATE(), INTERVAL -{} DAY)'.format(Settings.days)}
+            SQL.delete_table(**options)
             print('Завершение работы: {}'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
             run_date = current_date
         else:
