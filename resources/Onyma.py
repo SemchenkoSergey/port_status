@@ -102,6 +102,10 @@ def get_speed(tariff):
         speed = int(re_speed_kb.search(tariff).group(1))
     elif 'Максимальная скорость'.lower() in tariff.lower():
         return 15 * 1024
+    elif 'Нон-стоп max'.lower() in tariff.lower():
+        return 15 * 1024
+    elif 'тариф "Игровой"'.lower() in tariff.lower():
+        return 15 * 1024    
     else:
         return False
     return speed
