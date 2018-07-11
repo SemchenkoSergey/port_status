@@ -150,6 +150,11 @@ def main():
                 return    
             onyma_param_list = get_onyma_params()
             arguments = [(account_list[x::Settings.threads_count], onyma_param_list)  for x in range(0,  Settings.threads_count)]
+            while True:
+                try:
+                    arguments.remove(((), onyma_param_list))
+                except:
+                    break
       
             with ThreadPoolExecutor(max_workers=Settings.threads_count) as executor:
                 result = executor.map(run, arguments)
