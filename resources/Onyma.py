@@ -21,7 +21,7 @@ def get_onyma():
 
 def count_sessions(onyma, bill,  dmid,  tmid,  date):
     result = {}
-    re_hostname = r'(STV.+?) atm \d/(\d+)/\d/(\d+)'
+    re_hostname = r'(STV[\w-]+?) atm \d/(\d+)/\d/(\d+)'
     try:
         html = onyma.get("https://10.144.196.37/onyma/main/ddstat.htms?bill={}&dt={}&mon={}&year={}&service=201&dmid={}&tmid={}".format(bill,  date.day,  date.month, date.year,  dmid,  tmid))        
         result['count'] = int(re.search(r'<td class="foot">Все</td><td class="pgout" colspan="5">.+?<b>(\d+)</b>',  html.text.__repr__()).group(1))
