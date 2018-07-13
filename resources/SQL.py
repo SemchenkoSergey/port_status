@@ -5,6 +5,38 @@
 import MySQLdb
 from resources import Settings
 
+
+def create_data_dsl(drop=False):
+    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
+    cursor = connect.cursor()
+    try:
+        if drop:
+            cursor.execute('DROP TABLE IF EXISTS data_dsl')
+        table = '''
+        CREATE TABLE IF NOT EXISTS data_dsl (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        hostname VARCHAR(50) NOT NULL,
+        board TINYINT UNSIGNED NOT NULL,
+        port TINYINT UNSIGNED NOT NULL,
+        up_snr FLOAT(3,1),
+        dw_snr FLOAT(3,1),
+        up_att FLOAT(3,1),
+        dw_att FLOAT(3,1),
+        max_up_rate SMALLINT UNSIGNED,
+        max_dw_rate SMALLINT UNSIGNED,
+        up_rate SMALLINT UNSIGNED,
+        dw_rate SMALLINT UNSIGNED,
+        datetime DATETIME NOT NULL,
+        CONSTRAINT pk_data_dsl PRIMARY KEY (id)
+        )'''
+        cursor.execute(table)
+    except:
+        pass
+    else:
+        cursor.execute('commit')
+    connect.close()    
+
+
 def create_abon_dsl(drop=False):
     connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
     cursor = connect.cursor()
@@ -122,10 +154,6 @@ def get_table_data(table_name, str1, str2):
         
 
 def insert_table(cursor, table_name, str1, str2):
-    #str_values = ''
-    #for value in str_values:
-        #str_values += str(value) + ','
-    #str_values = str_values[:-1]
     command = '''
     INSERT INTO {}
     ({})

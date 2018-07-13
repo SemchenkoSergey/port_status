@@ -6,60 +6,10 @@ import MySQLdb
 import os
 from resources import Settings
 from resources import DslamHuawei
+from resources import SQL
 from concurrent.futures import ThreadPoolExecutor
 
 DslamHuawei.LOGGING = True
-
-err_file_sql = 'error-port_status-sql.txt'
-def create_error_file():
-    current_time = datetime.datetime.now()
-    with open('error_files' + os.sep + err_file_sql, 'w') as f:
-            f.write(current_time.strftime('%Y-%m-%d %H:%M') + '\n')
-
-def check_tables():
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor() 
-    table = '''
-    CREATE TABLE IF NOT EXISTS data_dsl (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    hostname VARCHAR(50) NOT NULL,
-    board TINYINT UNSIGNED NOT NULL,
-    port TINYINT UNSIGNED NOT NULL,
-    up_snr FLOAT(3,1),
-    dw_snr FLOAT(3,1),
-    up_att FLOAT(3,1),
-    dw_att FLOAT(3,1),
-    max_up_rate SMALLINT UNSIGNED,
-    max_dw_rate SMALLINT UNSIGNED,
-    up_rate SMALLINT UNSIGNED,
-    dw_rate SMALLINT UNSIGNED,
-    datetime DATETIME NOT NULL,
-    CONSTRAINT pk_data_dsl PRIMARY KEY (id)
-    )'''
-    try:
-        cursor.execute(table)
-    except Exception as ex:
-        with open('error_files' + os.sep + err_file_sql, 'a') as f:
-            f.write(str(ex) + '\n')            
-    else:
-        cursor.execute('commit')
-    connect.close()
-
-def delete_old_records():
-    connect = MySQLdb.connect(host=Settings.db_host, user=Settings.db_user, password=Settings.db_password, db=Settings.db_name, charset='utf8')
-    cursor = connect.cursor() 
-    table = '''
-    DELETE
-    FROM data_dsl
-    WHERE CAST(datetime AS DATE) < DATE_ADD(CURRENT_DATE(), INTERVAL -{} DAY)
-    '''.format(Settings.days)
-    try:
-        cursor.execute(table)
-    except:
-        pass
-    else:
-        cursor.execute('commit')
-    connect.close()    
     
 def connect_dslam(host):
     #Создание объекта dslam
@@ -112,33 +62,17 @@ def run(arguments):
         for port in range(0,dslam.ports):
             param = paramConnectBoard[port]
             if param['up_snr'] == '-':
-                command = '''
-                INSERT INTO data_dsl
-                (hostname, board, port, datetime)
-                VALUES
-                ("{}", {}, {}, "{}")
-                '''.format(hostname, board, port, current_time.strftime('%Y-%m-%d %H:%M:%S'))
-                try:
-                    cursor.execute(command)
-                except Exception as ex:
-                    with open('error_files' + os.sep + err_file_sql, 'a') as f:
-                        f.write(str(ex) + '\n')                  
-                else:
-                    cursor.execute('commit')
-                    continue
-            command = '''
-            INSERT INTO data_dsl
-            (hostname, board, port, up_snr, dw_snr, up_att, dw_att, max_up_rate, max_dw_rate, up_rate, dw_rate, datetime)
-            VALUES
-            ("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, "{}")
-            '''.format(hostname, board, port, param['up_snr'], param['dw_snr'], param['up_att'], param['dw_att'], param['max_up_rate'], param['max_dw_rate'], param['up_rate'], param['dw_rate'], current_time.strftime('%Y-%m-%d %H:%M:%S'))
-            try:
-                cursor.execute(command)
-            except Exception as ex:
-                with open('error_files' + os.sep + err_file_sql, 'a') as f:
-                    f.write(str(ex) + '\n')                  
-            else:
-                cursor.execute('commit')
+                options = {'cursor': cursor,
+                           'table_name': 'data_dsl',
+                           'str1': 'hostname, board, port, datetime',
+                           'str2': '"{}", {}, {}, "{}"'.format(hostname, board, port, current_time.strftime('%Y-%m-%d %H:%M:%S'))}
+                SQL.insert_table(**options)
+                continue
+            options = {'cursor': cursor,
+                       'table_name': 'data_dsl',
+                       'str1': 'hostname, board, port, up_snr, dw_snr, up_att, dw_att, max_up_rate, max_dw_rate, up_rate, dw_rate, datetime',
+                       'str2': '"{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, "{}"'.format(hostname, board, port, param['up_snr'], param['dw_snr'], param['up_att'], param['dw_att'], param['max_up_rate'], param['max_dw_rate'], param['up_rate'], param['dw_rate'], current_time.strftime('%Y-%m-%d %H:%M:%S'))}
+            SQL.insert_table(**options)
     connect.close()
     print('DSLAM ip {}, hostname {} обработан'.format(ip, hostname))
     del dslam
@@ -147,10 +81,8 @@ def run(arguments):
 
 def main():
     print('Программа запущена...\n')
-    # Создание файла для записи ошибок
-    create_error_file()
-    # Проверка есть ли таблица
-    check_tables()
+    # Создание таблицы(если еще нет)
+    SQL.create_data_dsl()
     
     # Интервал запуска
     run_interval = int((24*60*60)/Settings.number_of_launches)
@@ -171,7 +103,9 @@ def main():
         
         # Удаление старых записей
         if delete_record_date != run_time.date():
-            delete_old_records()
+            options = {'table_name': 'data_dsl',
+                       'str1': 'CAST(datetime AS DATE) < DATE_ADD(CURRENT_DATE(), INTERVAL -{} DAY)'.format(Settings.days)}
+            SQL.delete_table(**options)
             delete_record_date = run_time.date()
             
         print('--- Обработка завершена ({}) ---\n'.format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))

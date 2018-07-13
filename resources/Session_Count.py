@@ -112,7 +112,7 @@ def run(arguments):
                            'str2': 'account_name = "{}"'.format(account_name)}
                 SQL.update_table(**options)
                 count_tech_data += 1
-                print(account_name, data['hostname'], data['board'], data['port'])
+                #print(account_name, data['hostname'], data['board'], data['port'])
         count_processed += 1
         options = {'cursor': cursor,
                    'table_name': 'data_sessions',
@@ -126,9 +126,19 @@ def run(arguments):
 
 def main():
     # Начало
-    #run_date = datetime.datetime.now().date()
-    #print('Проверка сессий начнется завтра после 5 часов утра...\n')
-    run_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
+    while True:
+        print('-')
+        print('1. Запуск утром следующего дня')
+        print('2. Запуск сейчас')
+        number = input('-\n> ')
+        if number == '1' or number == '2':
+            break
+    if number == '1':
+        run_date = datetime.datetime.now().date()
+        print('Проверка сессий начнется завтра после 5 часов утра...\n')
+    else:
+        run_date = datetime.datetime.now().date() - datetime.timedelta(days=1)
+        print('Запуск проверки сессий...\n')
     
     while True:
         current_date = datetime.datetime.now().date()
